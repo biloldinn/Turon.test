@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURON O'QUV MARKAZI - AI Test Tizimi</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Screen Mirror CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsmirror@1.0.0/jsmirror.css">
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #166088;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --ai-color: #8a2be2;
+            --info: #17a2b8;
+            --dark: #343a40;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Login Section */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Admin Login Button */
+        .admin-login-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+            z-index: 1000;
+            border: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .admin-login-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Test Cards */
+        .test-card {
+            transition: all 0.3s;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            background: white;
+            height: 100%;
+        }
+
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .test-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
+        }
+
+        .ai-test-header {
+            background: linear-gradient(135deg, var(--ai-color), #6a11cb);
+            color: white;
+            padding: 15px;
+        }
+
+        /* Timer */
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--danger);
+            padding: 10px 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid var(--danger);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        /* Admin Panel */
+        .admin-sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: #2c3e50;
+            color: white;
+            padding-top: 20px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .admin-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        .nav-link-admin {
+            display: block;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-admin:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding-left: 25px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .nav-link-admin.active {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            border-left: 4px solid #3498db;
+        }
+
+        .nav-link-admin.ai {
+            border-left: 3px solid var(--ai-color);
+        }
+
+        /* Student Panel */
+        .student-nav {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Question Box */
+        .question-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid var(--primary);
+        }
+
+        .ai-question-box {
+            border-left: 4px solid var(--ai-color);
+        }
+
+        .option-label {
+            display: block;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option-label:hover {
+            border-color: var(--primary);
+            background: #f8f9fa;
+        }
+
+        .option-label.selected {
+            border-color: var(--success);
+            background: #d4edda;
+            color: var(--success);
+        }
+
+        /* Result Card */
+        .result-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 8px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        /* Stat Cards */
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .ai-stat-card {
+            border-left: 5px solid var(--ai-color);
+        }
+
+        /* Badges */
+        .badge-ai {
+            background: var(--ai-color);
+            color: white;
+        }
+
+        .btn-ai {
+            background: var(--ai-color);
+            color: white;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-ai:hover {
+            background: #7b1fa2;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+
+        .bg-ai {
+            background: var(--ai-color);
+        }
+
+        /* File Upload Zone */
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--ai-color);
+            background: #e8f4fc;
+        }
+
+        .drop-zone.active {
+            border-color: var(--ai-color);
+            background: #e8f4fc;
+        }
+
+        /* Live Monitoring */
+        .monitoring-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .student-monitor {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .student-monitor.active {
+            border-left: 4px solid var(--success);
+            background: #e8f5e8;
+        }
+
+        .student-monitor.finished {
+            border-left: 4px solid var(--info);
+            background: #e8f4fc;
+        }
+
+        .progress-time {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-time-bar {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        /* Screen Mirror */
+        .screen-mirror-container {
+            background: var(--dark);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .screen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .screen-item {
+            background: #495057;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .screen-header {
+            background: #44515e;
+            color: white;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        .screen-content {
+            padding: 15px;
+            background: #212529;
+            color: #e9ecef;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Modal Custom */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            border-radius: 15px 15px 0 0;
+            padding: 15px 20px;
+        }
+
+        /* Loading Spinner */
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        /* Alert Animations */
+        .alert {
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .admin-sidebar.active {
+                transform: translateX(0);
+            }
+
+            .admin-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+
+            .timer {
+                font-size: 18px;
+                padding: 8px 15px;
+                min-width: 100px;
+            }
+
+            .screen-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-login-btn {
+                bottom: 10px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .section.active {
+                display: block !important;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Utility Classes */
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .text-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shadow-hover {
+            transition: box-shadow 0.3s;
+        }
+
+        .shadow-hover:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animation for AI Processing */
+        .ai-pulse {
+            animation: aiPulse 2s infinite;
+        }
+
+        @keyframes aiPulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Admin Login Button -->
+    <button class="admin-login-btn no-print" onclick="showAdminLoginModal()">
+        <i class="fas fa-lock"></i> Admin Panel
+    </button>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="section active">
+        <div class="container">
+            <div class="login-container">
+                <div class="text-center mb-4">
+                    <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+                    <h2>Turon O'quv Markazi</h2>
+                    <p class="text-muted">AI Test Tizimiga xush kelibsiz</p>
+                </div>
+
+                <div id="studentLoginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Telefon raqam</label>
+                        <input type="tel" class="form-control" id="studentPhone" placeholder="+998901234567">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parol</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="studentPassword">
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('studentPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-100 mb-3" onclick="loginStudent()">
+                        <i class="fas fa-sign-in-alt"></i> Kirish
+                    </button>
+                    <p class="text-center mb-0">
+                        Yangi o'quvchimisiz?
+                        <a href="#" class="text-decoration-none" onclick="showRegister()">Ro'yxatdan o'ting</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Section -->
+    <div id="registerSection" class="section">
+        <div class="container">
+            <div class="login-container">
+                <div class="text-center mb-4">
+                    <h3>Ro'yxatdan o'tish</h3>
+                    <p class="text-muted">Ma'lumotlaringizni kiriting</p>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control mb-3" id="regFirstName" placeholder="Ism">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control mb-3" id="regLastName" placeholder="Familiya">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <input type="tel" class="form-control" id="regPhone" placeholder="Telefon raqam (+998901234567)">
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="regGroup" placeholder="Guruh kodi (232)">
+                </div>
+
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="regPassword"
+                            placeholder="Parol (kamida 6 ta belgi)">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('regPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="regConfirmPassword"
+                            placeholder="Parolni takrorlang">
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="togglePassword('regConfirmPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-success w-100 mb-3" onclick="registerStudent()">
+                    <i class="fas fa-user-plus"></i> Ro'yxatdan o'tish
+                </button>
+
+                <button class="btn btn-outline-secondary w-100" onclick="showLogin()">
+                    <i class="fas fa-arrow-left"></i> Kirish sahifasiga
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="studentSection" class="section">
+        <nav class="student-nav">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0"><i class="fas fa-graduation-cap text-primary"></i> Turon O'quvchi</h4>
+                        <small id="studentInfo" class="text-muted"></small>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="showStudentTests()">
+                            <i class="fas fa-list"></i> Testlar
+                        </button>
+                        <button class="btn btn-outline-success me-2" onclick="showStudentResults()">
+                            <i class="fas fa-chart-bar"></i> Natijalarim
+                        </button>
+                        <button class="btn btn-outline-info me-2" onclick="showLeaderboard()">
+                            <i class="fas fa-trophy"></i> Leaderboard
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Chiqish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div id="studentContent">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminSection" class="section">
+        <div class="admin-sidebar no-print">
+            <div class="text-center mb-4 px-3">
+                <h4 class="mb-1"><i class="fas fa-graduation-cap"></i> Turon Admin</h4>
+                <small class="text-white-50">AI Test Tizimi</small>
+                <div class="mt-3">
+                    <span class="badge bg-success" id="onlineCount">Online: 0</span>
+                </div>
+            </div>
+
+            <div class="nav-links">
+                <a href="#" class="nav-link-admin active" onclick="showAdminDashboard()">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+
+                <a href="#" class="nav-link-admin ai" onclick="showAITestCreator()">
+                    <i class="fas fa-robot"></i> AI Test Yaratish
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showManualTestCreator()">
+                    <i class="fas fa-edit"></i> O'zim Yaratish
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminTests()">
+                    <i class="fas fa-list-alt"></i> Testlar
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showLiveMonitoring()">
+                    <i class="fas fa-desktop"></i> Live Monitoring
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showScreenMirror()">
+                    <i class="fas fa-video"></i> Screen Mirror
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminFiles()">
+                    <i class="fas fa-file-upload"></i> Yuklangan Fayllar
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminManagement()">
+                    <i class="fas fa-user-shield"></i> Adminlar
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminStudents()">
+                    <i class="fas fa-users"></i> O'quvchilar
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminResults()">
+                    <i class="fas fa-chart-bar"></i> Natijalar
+                </a>
+
+                <a href="#" class="nav-link-admin" onclick="showAdminActivity()">
+                    <i class="fas fa-history"></i> Faollik
+                </a>
+            </div>
+
+            <hr class="text-white mx-3">
+
+            <div class="px-3">
+                <a href="#" class="nav-link-admin text-info" onclick="showStudentView()">
+                    <i class="fas fa-exchange-alt"></i> O'quvchi sahifasi
+                </a>
+
+                <a href="#" class="nav-link-admin text-warning" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Chiqish
+                </a>
+            </div>
+
+            <div class="mt-auto px-3 py-3">
+                <small class="text-white-50 d-block">Version 2.0</small>
+                <small class="text-white-50 d-block">© 2024 Turon O'quv Markazi</small>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <div id="adminContent">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Admin Login Modal -->
+    <div class="modal fade" id="adminLoginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-lock"></i> Admin Kirish</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-shield fa-3x text-danger mb-3"></i>
+                        <h4>Admin Panel</h4>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Telefon raqam</label>
+                        <input type="text" class="form-control" id="adminPhone" placeholder="Admin login">
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="adminPassword" placeholder="Parol">
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('adminPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-danger" onclick="loginAdmin()">
+                            <i class="fas fa-sign-in-alt"></i> Admin Kirish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Test Creator Modal -->
+    <div class="modal fade" id="aiTestModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-ai text-white">
+                    <h5 class="modal-title"><i class="fas fa-robot"></i> AI yordamida test yaratish</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="aiStep1">
+                        <div class="mb-4">
+                            <label class="form-label">Kurs nomi</label>
+                            <input type="text" class="form-control" id="aiCourseName"
+                                placeholder="Masalan: Frontend Development">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Test mavzusi yoki matni</label>
+                            <textarea class="form-control" id="aiTestPrompt" rows="5"
+                                placeholder="Test mavzusini yozing yoki matnni shu yerga tashlang..."></textarea>
+                        </div>
+                        <div class="drop-zone mb-4" id="aiDropZone">
+                            <i class="fas fa-file-pdf fa-3x mb-3 text-danger"></i>
+                            <p>PDF yoki Word faylni tashlang yoki tanlang</p>
+                            <input type="file" id="aiFileInput" hidden accept=".pdf,.doc,.docx">
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Savollar soni</label>
+                                <input type="number" class="form-control" id="aiQuestionCount" value="10" min="5"
+                                    max="50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Guruh kodi</label>
+                                <input type="text" class="form-control" id="aiGroupCode" placeholder="232">
+                            </div>
+                        </div>
+                        <button class="btn btn-ai btn-lg w-100" onclick="generateAITest()">
+                            <i class="fas fa-magic"></i> Testni generatsiya qilish
+                        </button>
+                    </div>
+                    <div id="aiStep2" style="display:none;">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-ai mb-3" style="width: 3rem; height: 3rem;"></div>
+                            <h4>AI test yaratmoqda...</h4>
+                            <p class="text-muted">Bu bir necha soniya vaqt olishi mumkin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Test Creator Modal -->
+    <div class="modal fade" id="manualTestModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> O'zim test yaratish</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Test sarlavhasi</label>
+                        <input type="text" class="form-control" id="manualTestTitle">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Kurs nomi</label>
+                            <input type="text" class="form-control" id="manualCourseName"
+                                placeholder="Masalan: Ingliz tili">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Guruh kodi</label>
+                            <input type="text" class="form-control" id="manualGroupCode">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vaqt (daqiqa)</label>
+                            <input type="number" class="form-control" id="manualTimeLimit" value="30">
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>Savollar</h5>
+                    <div id="manualQuestionsContainer"></div>
+                    <button class="btn btn-outline-primary w-100 mt-3" onclick="addManualQuestion()">
+                        <i class="fas fa-plus"></i> Savol qo'shish
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="button" class="btn btn-primary" onclick="saveManualTest()">Saqlash</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div class="modal fade" id="addAdminModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-shield"></i> Yangi Admin</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ism</label>
+                        <input type="text" class="form-control" id="newAdminFirstName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Familiya</label>
+                        <input type="text" class="form-control" id="newAdminLastName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Login (Telefon)</label>
+                        <input type="text" class="form-control" id="newAdminPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parol</label>
+                        <input type="password" class="form-control" id="newAdminPassword">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAdmin()">Saqlash</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-trash"></i> O'chirish</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteMessage"></p>
+                    <div class="alert alert-danger mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> Bu amalni ortga qaytarib bo'lmaydi!
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">O'chirish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results Modal -->
+    <div class="modal fade" id="testResultsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-chart-bar"></i> Test natijalari</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="testResultsContent">
+                        <!-- Results Content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen View Modal -->
+    <div class="modal fade" id="screenViewModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fas fa-desktop"></i> O'quvchi ekrani</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-dark p-0">
+                    <div id="screenViewContent" class="h-100">
+                        <!-- Screen View Content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Socket.io for Real-time Communication -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <!-- Main JavaScript Application -->
+    <script>
+        // ============================================
+        // CONFIGURATION & GLOBAL VARIABLES
+        // ============================================
+        const CONFIG = {
+            API_BASE_URL: 'http://localhost:5000/api',
+            MONGODB_URI: 'mongodb://atlas-sql-698a0827ec29e1d63d4c2309-dculjc.a.query.mongodb.net/turon_education?ssl=true&authSource=admin',
+            DEEPSEEK_API_KEY: 'sk-29e381ccade94a0182862cba7b2a663d',
+            SOCKET_URL: 'http://localhost:5000'
+        };
+
+        let currentUser = null;
+        let currentTest = null;
+        let testTimer = null;
+        let timeLeft = 0;
+        let currentPage = '';
+        let aiFileId = null;
+        let socket = null;
+        let onlineStudents = new Map();
+        let screenMirrorData = new Map();
+        let monitoringInterval = null;
+        let awayTimer = null;
+        let isAway = false;
+
+        // Anti-cheat variables
+        let antiCheatWarnings = 0;
+        const MAX_ANTI_CHEAT_WARNINGS = 3; // Max warnings before test submission
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            // Update active nav link
+            if (sectionId === 'adminSection') {
+                document.querySelectorAll('.nav-link-admin').forEach(link => {
+                    link.classList.remove('active');
+                });
+            }
+        }
+
+        function showAdminLoginModal() {
+            const modal = new bootstrap.Modal(document.getElementById('adminLoginModal'));
+            modal.show();
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('uz-UZ') + ' ' + date.toLocaleTimeString('uz-UZ', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showAlert(message, type = 'info', duration = 5000) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alert.style.cssText = `
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 500px;
+            `;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alert);
+
+            if (duration) {
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, duration);
+            }
+        }
+
+        function showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+
+        // ============================================
+        // AUTHENTICATION FUNCTIONS
+        // ============================================
+
+        function showLogin() {
+            showSection('loginSection');
+        }
+
+        function showRegister() {
+            showSection('registerSection');
+        }
+
+        function showStudentView() {
+            showSection('loginSection');
+        }
+
+        async function loginStudent() {
+            const phone = document.getElementById('studentPhone').value.trim();
+            const password = document.getElementById('studentPassword').value;
+
+            if (!phone || !password) {
+                showAlert('Iltimos, telefon raqam va parolni kiriting', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('current_user', JSON.stringify(currentUser));
+
+                    // Connect to WebSocket
+                    connectSocket();
+
+                    document.getElementById('studentInfo').textContent =
+                        `${currentUser.firstName} ${currentUser.lastName} | Guruh: ${currentUser.groupCode}`;
+
+                    showStudentTests();
+                    showAlert('Muvaffaqiyatli kirildi', 'success');
+
+                    // Voice Greeting
+                    const msg = new SpeechSynthesisUtterance(`${currentUser.firstName}, Turon A.I. test tizimiga xush kelibsiz!`);
+                    msg.lang = 'uz-UZ';
+                    window.speechSynthesis.speak(msg);
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Server bilan ulanishda xatolik', 'danger');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function loginAdmin() {
+            const phone = document.getElementById('adminPhone').value;
+            const password = document.getElementById('adminPassword').value;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('current_user', JSON.stringify(currentUser));
+
+                    // Connect to WebSocket
+                    connectSocket();
+
+                    bootstrap.Modal.getInstance(document.getElementById('adminLoginModal')).hide();
+                    showAdminDashboard();
+                    showAlert('Admin panelga muvaffaqiyatli kirildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Server bilan ulanishda xatolik', 'danger');
+                console.error('Admin login error:', error);
+            }
+        }
+
+        async function registerStudent() {
+            const firstName = document.getElementById('regFirstName').value.trim();
+            const lastName = document.getElementById('regLastName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const groupCode = document.getElementById('regGroup').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // Validation
+            if (!firstName || !lastName || !phone || !groupCode || !password || !confirmPassword) {
+                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showAlert('Parollar mos kelmadi', 'danger');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Parol kamida 6 ta belgidan iborat bo\'lishi kerak', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, phone, groupCode, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! Endi kirishingiz mumkin.', 'success');
+                    showLogin();
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Server bilan ulanishda xatolik', 'danger');
+                console.error('Registration error:', error);
+            }
+        }
+
+        function logout() {
+            if (confirm('Hisobingizdan chiqishni istaysizmi?')) {
+                // Disconnect socket
+                if (socket) {
+                    socket.disconnect();
+                }
+
+                // Clear intervals
+                if (monitoringInterval) {
+                    clearInterval(monitoringInterval);
+                }
+                // Clear anti-cheat listeners
+                resetAntiCheatWarnings();
+
+                currentUser = null;
+                onlineStudents.clear();
+                screenMirrorData.clear();
+                localStorage.removeItem('current_user');
+                showLogin();
+                showAlert('Muvaffaqiyatli chiqildi', 'info');
+            }
+        }
+
+        // ============================================
+        // WEBSOCKET FUNCTIONS
+        // ============================================
+
+        function connectSocket() {
+            if (!currentUser) return;
+
+            // Disconnect existing socket
+            if (socket) {
+                socket.disconnect();
+            }
+
+            // Connect to WebSocket server
+            socket = io(CONFIG.SOCKET_URL, {
+                query: {
+                    userId: currentUser.id,
+                    userName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    role: currentUser.role,
+                    groupCode: currentUser.groupCode
+                }
+            });
+
+            socket.on('connect', () => {
+                console.log('WebSocket connected:', socket.id);
+                if (currentUser.role === 'admin') {
+                    updateOnlineCount();
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('WebSocket disconnected');
+            });
+
+            socket.on('student_status_update', (data) => {
+                updateStudentStatus(data);
+            });
+
+            socket.on('screen_mirror_update', (data) => {
+                updateScreenMirror(data);
+            });
+
+            socket.on('test_submission', (data) => {
+                if (currentUser.role === 'admin') {
+                    showAlert(`${data.studentName} testni topshirdi: ${data.score}%`, 'info');
+                }
+            });
+
+            socket.on('online_students', (data) => {
+                onlineStudents = new Map(data.map(s => [s.id, s]));
+                updateOnlineCount();
+            });
+
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+            });
+        }
+
+        function updateStudentStatus(data) {
+            if (currentUser.role !== 'admin') return;
+
+            const { studentId, status, testId, progress } = data;
+
+            // Update online students map
+            if (!onlineStudents.has(studentId)) {
+                onlineStudents.set(studentId, {
+                    id: studentId,
+                    name: data.studentName || 'Noma\'lum',
+                    status: status,
+                    lastUpdate: new Date()
+                });
+            } else {
+                const student = onlineStudents.get(studentId);
+                student.status = status;
+                student.lastUpdate = new Date();
+                if (data.studentName) student.name = data.studentName;
+            }
+
+            updateOnlineCount();
+
+            // If monitoring page is active, refresh it
+            if (currentPage === 'monitoring') {
+                showLiveMonitoring();
+            }
+        }
+
+        function updateScreenMirror(data) {
+            if (currentUser.role !== 'admin') return;
+
+            const { studentId, screenData, action } = data;
+
+            if (action === 'clear') {
+                screenMirrorData.delete(studentId);
+            } else {
+                screenMirrorData.set(studentId, {
+                    ...data,
+                    timestamp: new Date()
+                });
+            }
+
+            // If screen mirror page is active, refresh it
+            if (currentPage === 'screenMirror') {
+                showScreenMirror();
+            }
+        }
+
+        function updateOnlineCount() {
+            const onlineCount = Array.from(onlineStudents.values()).filter(s =>
+                s.status !== 'offline'
+            ).length;
+
+            document.getElementById('onlineCount').textContent = `Online: ${onlineCount}`;
+        }
+
+        // ============================================
+        // STUDENT FUNCTIONS
+        // ============================================
+
+        async function showStudentTests() {
+            showSection('studentSection');
+            currentPage = 'studentTests';
+            resetAntiCheatWarnings(); // Ensure anti-cheat is reset when not in test
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/tests/student/${currentUser.groupCode}`, {
+                    headers: { 'user-id': currentUser.id }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                const content = document.getElementById('studentContent');
+
+                if (!data.tests || data.tests.length === 0) {
+                    content.innerHTML = `
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x me-3"></i>
+                                <div>
+                                    <h5 class="alert-heading">Testlar mavjud emas</h5>
+                                    <p class="mb-0">Hozircha testlar mavjud emas. Ustozingiz yangi test qo'shguncha kuting.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3><i class="fas fa-list text-primary"></i> Mavjud testlar</h3>
+                                    <p class="text-muted">Guruh: ${currentUser.groupCode}</p>
+                                </div>
+                                <div class="badge bg-primary">
+                                    ${data.tests.length} ta test
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                `;
+
+                data.tests.forEach(test => {
+                    const now = new Date();
+                    const startTime = new Date(test.startTime);
+                    const endTime = new Date(test.endTime);
+                    const isAvailable = now >= startTime && now <= endTime;
+                    const isAITest = test.questions.some(q => q.createdByAI);
+
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="test-card h-100">
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge ${test.isTaken ? 'bg-secondary' : !isAvailable ? (now < startTime ? 'bg-warning' : 'bg-danger') : 'bg-success'}">
+                                        ${test.isTaken ? '✓ Topshirilgan' : !isAvailable ? (now < startTime ? '⏳ Kutilmoqda' : '❌ Muddati o\'tgan') : '✅ Mavjud'}
+                                    </span>
+                                </div>
+                                
+                                <div class="${isAITest ? 'ai-test-header' : 'test-header'}">
+                                    <h5 class="mb-1">${test.title}</h5>
+                                    ${test.description ? `<p class="small mb-0 opacity-75">${test.description}</p>` : ''}
+                                    ${isAITest ? '<small class="d-block mt-1"><i class="fas fa-robot"></i> AI yaratgan test</small>' : ''}
+                                </div>
+                                
+                                <div class="card-body d-flex flex-column">
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-question-circle text-primary me-2"></i>
+                                            <span>${test.questions.length} savol</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-clock text-warning me-2"></i>
+                                            <span>${test.timeLimit} daqiqa</span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-star text-success me-2"></i>
+                                            <span>${test.totalScore} ball</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-auto">
+                                        ${test.isTaken ?
+                            `<button class="btn btn-secondary w-100" disabled>
+                                                <i class="fas fa-check-circle"></i> Topshirilgan
+                                            </button>` :
+                            !isAvailable ?
+                                `<button class="btn btn-outline-secondary w-100" disabled>
+                                                <i class="fas fa-lock"></i> ${now < startTime ? 'Hali boshlanmadi' : 'Muddati o\'tgan'}
+                                            </button>` :
+                                `<button class="btn btn-primary w-100" onclick="startTest('${test._id}')">
+                                                <i class="fas fa-play-circle"></i> Testni boshlash
+                                            </button>`
+                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading tests:', error);
+                document.getElementById('studentContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                            <div>
+                                <h5 class="alert-heading">Xatolik yuz berdi</h5>
+                                <p class="mb-0">Testlarni yuklashda xatolik. Iltimos, qayta urinib ko'ring.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function startTest(testId) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/tests/take/${testId}`, {
+                    headers: { 'user-id': currentUser.id }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                    return;
+                }
+
+                currentTest = data.test;
+                timeLeft = currentTest.timeLimit * 60;
+
+                const content = document.getElementById('studentContent');
+                content.innerHTML = `
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <h3>${currentTest.title}</h3>
+                                    <p class="text-muted mb-0">${currentTest.description || ''}</p>
+                                    ${currentTest.questions.some(q => q.createdByAI) ?
+                        '<span class="badge badge-ai mt-2"><i class="fas fa-robot"></i> AI testi</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-end">
+                                <div class="timer">
+                                    <div id="testTimer">
+                                        ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}
+                                    </div>
+                                    <small class="d-block text-center text-muted mt-1">Qolgan vaqt</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Testda ${currentTest.questions.length} ta savol bor. Har bir savolga javob bering.
+                    </div>
+                    
+                    <div id="testQuestionsContainer">
+                        <!-- Questions will be loaded here -->
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <button class="btn btn-success btn-lg px-5 me-3" onclick="submitTest()">
+                                        <i class="fas fa-paper-plane"></i> Testni yakunlash
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-lg px-5" onclick="cancelTest()">
+                                        <i class="fas fa-times"></i> Bekor qilish
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Load questions
+                const container = document.getElementById('testQuestionsContainer');
+                currentTest.questions.forEach((question, index) => {
+                    container.innerHTML += `
+                        <div class="${question.createdByAI ? 'question-box ai-question-box' : 'question-box'}">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="mb-0">${index + 1}. ${question.text}</h5>
+                                <span class="badge bg-success">${question.score || 5} ball</span>
+                            </div>
+                            <div class="options">
+                                ${question.options.map((option, optIndex) => `
+                                    <label class="option-label" onclick="selectOption(this, ${index}, '${option}')">
+                                        <input type="radio" name="q${index}" value="${option}" style="display:none;">
+                                        <span class="me-2">${String.fromCharCode(65 + optIndex)})</span>
+                                        ${option}
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Start timer
+                startTimer();
+
+                // Anti-Cheat Initialization
+                initAntiCheat();
+
+                // Notify admin about test start
+                if (socket) {
+                    socket.emit('test_started', {
+                        studentId: currentUser.id,
+                        studentName: `${currentUser.firstName} ${currentUser.lastName}`,
+                        testId: testId,
+                        testTitle: currentTest.title
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error starting test:', error);
+                showAlert('Testni boshlashda xatolik', 'danger');
+            }
+        }
+
+        function selectOption(element, questionIndex, optionValue) {
+            const questionBox = element.closest('.question-box');
+            questionBox.querySelectorAll('.option-label').forEach(label => {
+                label.classList.remove('selected');
+            });
+            element.classList.add('selected');
+
+            if (!currentTest.answers) {
+                currentTest.answers = {};
+            }
+            currentTest.answers[questionIndex] = optionValue;
+
+            // Send screen update for mirroring
+            if (socket) {
+                socket.emit('screen_update', {
+                    studentId: currentUser.id,
+                    action: 'answer_selected',
+                    questionIndex: questionIndex,
+                    selectedOption: optionValue,
+                    testId: currentTest._id
+                });
+            }
+        }
+
+        function startTimer() {
+            clearInterval(testTimer);
+
+            testTimer = setInterval(() => {
+                timeLeft--;
+
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('testTimer').textContent =
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                // Update progress bar in monitoring
+                if (socket) {
+                    const progress = ((currentTest.timeLimit * 60) - timeLeft) / (currentTest.timeLimit * 60) * 100;
+                    socket.emit('test_progress', {
+                        studentId: currentUser.id,
+                        progress: progress,
+                        timeLeft: timeLeft
+                    });
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(testTimer);
+                    submitTest();
+                }
+            }, 1000);
+        }
+
+        async function submitTest() {
+            clearInterval(testTimer);
+
+            // Check if all questions answered
+            const answeredCount = currentTest.answers ? Object.keys(currentTest.answers).length : 0;
+            const totalQuestions = currentTest.questions.length;
+
+            if (answeredCount < totalQuestions) {
+                if (!confirm(`${totalQuestions - answeredCount} ta savolga javob bermadingiz. Testni shu holatda topshirishni istaysizmi?`)) {
+                    return;
+                }
+            }
+
+            // Prepare answers array
+            const answers = [];
+            for (let i = 0; i < currentTest.questions.length; i++) {
+                answers.push(currentTest.answers?.[i] || '');
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/tests/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'user-id': currentUser.id
+                    },
+                    body: JSON.stringify({
+                        testId: currentTest._id,
+                        answers: answers,
+                        timeTaken: (currentTest.timeLimit * 60) - timeLeft
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Notify admin about submission
+                    if (socket) {
+                        socket.emit('test_submitted', {
+                            studentId: currentUser.id,
+                            studentName: `${currentUser.firstName} ${currentUser.lastName}`,
+                            testId: currentTest._id,
+                            testTitle: currentTest.title,
+                            score: data.score,
+                            percentage: data.percentage,
+                            passed: data.passed
+                        });
+                    }
+
+                    if (data.passed) {
+                        triggerConfetti();
+                        const msg = new SpeechSynthesisUtterance("Tabriklayman! Siz testdan muvaffaqiyatli o'tdingiz.");
+                        msg.lang = 'uz-UZ';
+                        window.speechSynthesis.speak(msg);
+                    }
+
+                    showTestResult(data);
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Error submitting test:', error);
+                showAlert('Testni topshirishda xatolik', 'danger');
+            }
+        }
+
+        function showTestResult(result) {
+            const content = document.getElementById('studentContent');
+            content.innerHTML = `
+                <div class="row justify-content-center">
+                    <div class="col-md-10 col-lg-8">
+                        <div class="result-card">
+                            <h2><i class="fas fa-trophy"></i> Tabriklaymiz!</h2>
+                            <p class="mb-4">Testni muvaffaqiyatli yakunladingiz</p>
+                            
+                            <div class="score-circle ${result.passed ? 'bg-success' : 'bg-danger'}">
+                                ${result.percentage}%
+                            </div>
+                            
+                            <h3 class="mb-4">${currentTest.title}</h3>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6 mb-3">
+                                    <div class="bg-white text-dark p-3 rounded">
+                                        <h6>Olingan ball</h6>
+                                        <h4 class="text-success">${result.score}/${result.totalScore}</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="bg-white text-dark p-3 rounded">
+                                        <h6>Natija</h6>
+                                        <h4 class="${result.passed ? 'text-success' : 'text-danger'}">
+                                            ${result.passed ? "✅ O'tdi" : "❌ O'tmadi"}
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button class="btn btn-light btn-lg me-3" onclick="showStudentTests()">
+                                    <i class="fas fa-home"></i> Bosh sahifa
+                                </button>
+                                <button class="btn btn-outline-light btn-lg" onclick="showStudentResults()">
+                                    <i class="fas fa-list"></i> Barcha natijalarim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            currentTest = null;
+        }
+
+        function cancelTest() {
+            if (confirm('Testni bekor qilishni istaysizmi? Barcha javoblar saqlanmaydi.')) {
+                clearInterval(testTimer);
+                currentTest = null;
+                showStudentTests();
+            }
+        }
+
+        async function showStudentResults() {
+            showSection('studentSection');
+            currentPage = 'studentResults';
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/results/student`, {
+                    headers: { 'user-id': currentUser.id }
+                });
+
+                const data = await response.json();
+
+                const content = document.getElementById('studentContent');
+
+                if (!data.success || !data.results || data.results.length === 0) {
+                    content.innerHTML = `
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x me-3"></i>
+                                <div>
+                                    <h5 class="alert-heading">Natijalar mavjud emas</h5>
+                                    <p class="mb-0">Hozircha siz hech qanday test topshirmagansiz.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3><i class="fas fa-chart-bar text-success"></i> Mening natijalarim</h3>
+                                    <p class="text-muted">Jami ${data.results.length} ta natija</p>
+                                </div>
+                                <button class="btn btn-outline-primary" onclick="showStudentTests()">
+                                    <i class="fas fa-arrow-left"></i> Testlarga qaytish
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Test nomi</th>
+                                    <th>Ball</th>
+                                    <th>Foiz</th>
+                                    <th>Natija</th>
+                                    <th>Vaqt</th>
+                                    <th>Sana</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                data.results.forEach((result, index) => {
+                    const timeTaken = Math.round(result.timeTaken / 60);
+
+                    html += `
+                        <tr class="cursor-pointer" onclick="viewResultDetails('${result._id}')">
+                            <td>${index + 1}</td>
+                            <td>${result.testId?.title || 'Noma\'lum test'}</td>
+                            <td><strong>${result.score}/${result.totalScore}</strong></td>
+                            <td>
+                                <span class="badge ${result.percentage >= 60 ? 'bg-success' : 'bg-danger'}">
+                                    ${result.percentage}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge ${result.passed ? 'bg-success' : 'bg-danger'}">
+                                    ${result.passed ? "O'tdi" : "O'tmadi"}
+                                </span>
+                            </td>
+                            <td>${timeTaken} daqiqa</td>
+                            <td>${formatDate(result.submittedAt)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>Statistika</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <div class="stat-card">
+                                            <h6>O'rtacha ball</h6>
+                                            <h3>${calculateAverage(data.results)}%</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-card">
+                                            <h6>O'tgan testlar</h6>
+                                            <h3>${data.results.filter(r => r.passed).length}</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-card">
+                                            <h6>Jami ball</h6>
+                                            <h3>${data.results.reduce((sum, r) => sum + r.score, 0)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading results:', error);
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                            <div>
+                                <h5 class="alert-heading">Xatolik yuz berdi</h5>
+                                <p class="mb-0">Natijalarni yuklashda xatolik. Iltimos, qayta urinib ko'ring.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function calculateAverage(results) {
+            if (results.length === 0) return 0;
+            const total = results.reduce((sum, r) => sum + r.percentage, 0);
+            return Math.round(total / results.length);
+        }
+
+        async function viewResultDetails(resultId) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/results/${resultId}`, {
+                    headers: { 'user-id': currentUser.id }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const modal = new bootstrap.Modal(document.getElementById('testResultsModal'));
+                    const content = document.getElementById('testResultsContent');
+
+                    content.innerHTML = `
+                        <h4>Test natijasi: ${data.result.testId?.title || 'Noma\'lum'}</h4>
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Umumiy ball</h6>
+                                        <h3>${data.result.score}/${data.result.totalScore}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Foiz</h6>
+                                        <h3 class="${data.result.percentage >= 60 ? 'text-success' : 'text-danger'}">
+                                            ${data.result.percentage}%
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Natija</h6>
+                                        <h3>
+                                            <span class="badge ${data.result.passed ? 'bg-success' : 'bg-danger'}">
+                                                ${data.result.passed ? "O'tdi" : "O'tmadi"}
+                                            </span>
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Vaqt</h6>
+                                        <h3>${Math.round(data.result.timeTaken / 60)} daq</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5>Savol natijalari</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Savol</th>
+                                        <th>Sizning javobi</th>
+                                        <th>To'g'ri javob</th>
+                                        <th>Ball</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.result.answers.map((answer, index) => `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td>${answer.question || 'Noma\'lum'}</td>
+                                            <td>
+                                                <span class="${answer.isCorrect ? 'text-success' : 'text-danger'}">
+                                                    ${answer.selected || 'Javob berilmagan'}
+                                                    ${answer.isCorrect ? ' ✓' : ' ✗'}
+                                                </span>
+                                            </td>
+                                            <td>${answer.correct}</td>
+                                            <td>${answer.score}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    modal.show();
+                }
+            } catch (error) {
+                console.error('Error loading result details:', error);
+                showAlert('Natija tafsilotlarini yuklashda xatolik', 'danger');
+            }
+        }
+
+        // ============================================
+        // ADMIN FUNCTIONS
+        // ============================================
+
+        async function showAdminDashboard() {
+            showSection('adminSection');
+            currentPage = 'adminDashboard';
+
+            // Update active nav
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/dashboard`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                const content = document.getElementById('adminContent');
+                content.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h3 class="mb-1"><i class="fas fa-tachometer-alt"></i> Dashboard</h3>
+                            <p class="text-muted mb-0">Tizim statistikasi va boshqaruv paneli</p>
+                        </div>
+                        <div class="badge bg-primary">
+                            ${new Date().toLocaleDateString('uz-UZ')}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                                        <i class="fas fa-users text-primary fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-muted mb-1">O'quvchilar</h6>
+                                        <h2 class="mb-0">${data.stats.students}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                                        <i class="fas fa-list-alt text-success fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-muted mb-1">Testlar</h6>
+                                        <h2 class="mb-0">${data.stats.tests}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded-circle me-3">
+                                        <i class="fas fa-chart-bar text-info fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-muted mb-1">Natijalar</h6>
+                                        <h2 class="mb-0">${data.stats.results}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="ai-stat-card">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-ai bg-opacity-10 p-3 rounded-circle me-3">
+                                        <i class="fas fa-robot text-ai fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-muted mb-1">AI Fayllar</h6>
+                                        <h2 class="mb-0">${data.stats.files}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history"></i> So'nggi faollik</h5>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    ${data.recentActivities.map(activity => `
+                                        <div class="border-bottom pb-3 mb-3">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <strong>${activity.userName || 'Noma\'lum'}</strong>
+                                                    <div class="text-muted small">
+                                                        ${getActivityIcon(activity.activity)} 
+                                                        ${getActivityText(activity.activity)}
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">${formatDate(activity.timestamp)}</small>
+                                            </div>
+                                            ${activity.testTitle ? `
+                                                <div class="mt-2">
+                                                    <small class="text-muted">Test:</small>
+                                                    <div class="text-truncate">${activity.testTitle}</div>
+                                                </div>
+                                            ` : ''}
+                                            ${activity.score ? `
+                                                <div class="mt-1">
+                                                    <small class="text-muted">Natija:</small>
+                                                    <span class="badge ${activity.score >= 60 ? 'bg-success' : 'bg-danger'}">
+                                                        ${activity.score}%
+                                                    </span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Tezkor harakatlar</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-3">
+                                        <button class="btn btn-ai" onclick="showAITestCreator()">
+                                            <i class="fas fa-robot"></i> AI yordamida test yaratish
+                                        </button>
+                                        <button class="btn btn-primary" onclick="showManualTestCreator()">
+                                            <i class="fas fa-edit"></i> O'zim test yaratish
+                                        </button>
+                                        <button class="btn btn-success" onclick="showLiveMonitoring()">
+                                            <i class="fas fa-desktop"></i> Live Monitoring
+                                        </button>
+                                        <button class="btn btn-info" onclick="showAdminStudents()">
+                                            <i class="fas fa-users"></i> O'quvchilarni ko'rish
+                                        </button>
+                                        <button class="btn btn-warning" onclick="showAdminResults()">
+                                            <i class="fas fa-chart-bar"></i> Barcha natijalar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Bugungi statistikalar</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-success bg-opacity-10 p-2 rounded me-3">
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1">Bugun topshirilgan</h6>
+                                                    <h4 class="mb-0">${data.stats.todayResults || 0}</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
+                                                    <i class="fas fa-user-clock text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1">Online o'quvchilar</h6>
+                                                    <h4 class="mb-0" id="dashboardOnlineCount">0</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Update online count
+                const onlineCount = Array.from(onlineStudents.values()).filter(s =>
+                    s.status !== 'offline'
+                ).length;
+                document.getElementById('dashboardOnlineCount').textContent = onlineCount;
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                            <div>
+                                <h5 class="alert-heading">Dashboard yuklanmadi</h5>
+                                <p class="mb-0">Server bilan ulanishda xatolik. Iltimos, qayta urinib ko'ring.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function getActivityIcon(activity) {
+            switch (activity) {
+                case 'admin_login': return '👑';
+                case 'student_login': return '👤';
+                case 'test_started': return '📝';
+                case 'test_completed': return '✅';
+                case 'test_created_from_ai': return '🤖';
+                case 'test_created_manual': return '✏️';
+                case 'registration': return '📋';
+                default: return '📌';
+            }
+        }
+
+        function getActivityText(activity) {
+            switch (activity) {
+                case 'admin_login': return 'Admin kirishi';
+                case 'student_login': return 'O\'quvchi kirishi';
+                case 'test_started': return 'Testni boshlash';
+                case 'test_completed': return 'Testni tugatish';
+                case 'test_created_from_ai': return 'AI test yaratish';
+                case 'test_created_manual': return 'Test yaratish';
+                case 'registration': return 'Ro\'yxatdan o\'tish';
+                default: return activity;
+            }
+        }
+
+        // ============================================
+        // ANTI-CHEAT FUNCTIONS
+        // ============================================
+        function initAntiCheat() {
+            antiCheatWarnings = 0;
+            window.addEventListener('blur', handleAway);
+            window.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') handleAway();
+            });
+        }
+
+        function handleAway() {
+            if (currentPage !== 'studentTests' || !currentTest) return;
+
+            antiCheatWarnings++;
+            if (antiCheatWarnings >= MAX_ANTI_CHEAT_WARNINGS) {
+                showAlert('Imtihon qoidalari buzildi! Tabdan chiqish taqiqlangan.', 'danger');
+                submitTest();
+            } else {
+                showAlert(`Ogohlantirish! Tabdan chiqish taqiqlangan. ${MAX_ANTI_CHEAT_WARNINGS - antiCheatWarnings} ta imkoniyat qoldi.`, 'warning');
+            }
+        }
+
+        function resetAntiCheatWarnings() {
+            antiCheatWarnings = 0;
+            window.removeEventListener('blur', handleAway);
+        }
+
+        // ============================================
+        // ADMIN MANAGEMENT
+        // ============================================
+        async function showAdminManagement() {
+            showSection('adminSection');
+            currentPage = 'adminManagement';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/list`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-user-shield"></i> Adminlar boshqaruvi</h3>
+                        <button class="btn btn-primary" onclick="showAddAdminModal()">
+                            <i class="fas fa-plus"></i> Yangi Admin
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover bg-white rounded shadow-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ism Familiya</th>
+                                    <th>Login (Telefon)</th>
+                                    <th>Sana</th>
+                                    <th>Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.admins.map(admin => `
+                                    <tr>
+                                        <td>${admin.firstName} ${admin.lastName}</td>
+                                        <td>${admin.phone}</td>
+                                        <td>${formatDate(admin.createdAt)}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAdmin('${admin._id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        // ============================================
+        // EXCEL EXPORT
+        // ============================================
+        function exportToExcel(data, fileName) {
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+            XLSX.writeFile(workbook, fileName + ".xlsx");
+        }
+
+        async function exportStudents() {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
+            const data = await response.json();
+            const exportData = data.students.map(s => ({
+                'Ism': s.firstName,
+                'Familiya': s.lastName,
+                'Telefon': s.phone,
+                'Guruh': s.groupCode,
+                'Ro\'yxatdan o\'tgan': formatDate(s.createdAt)
+            }));
+            exportToExcel(exportData, "Oquvchilar_Royhati");
+        }
+
+        // ============================================
+        // LEADERBOARD
+        // ============================================
+        async function showLeaderboard() {
+            showSection('studentSection');
+            const content = document.getElementById('studentContent');
+            showLoading('studentContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
+                const data = await response.json();
+
+                // Sort by score and filter top performers
+                const topResults = data.results
+                    .sort((a, b) => b.percentage - a.percentage)
+                    .slice(0, 10);
+
+                let html = `
+                    <div class="text-center mb-5">
+                        <h2 class="display-4 text-primary"><i class="fas fa-crown text-warning"></i> PesHQadamlar</h2>
+                        <p class="text-muted">Eng yuqori natija ko'rsatgan 10 ta o'quvchi</p>
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="list-group shadow-sm">
+                                ${topResults.map((r, i) => `
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <h4 class="me-3 mb-0 text-muted">#${i + 1}</h4>
+                                            <div>
+                                                <h5 class="mb-0">${r.userId?.firstName} ${r.userId?.lastName}</h5>
+                                                <small class="text-muted">${r.testId?.title}</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-success rounded-pill p-2 px-3">${r.percentage}%</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        // --- Additional Implementation ---
+
+        function showAITestCreator() {
+            const modal = new bootstrap.Modal(document.getElementById('aiTestModal'));
+            document.getElementById('aiStep1').style.display = 'block';
+            document.getElementById('aiStep2').style.display = 'none';
+            modal.show();
+        }
+
+        async function generateAITest() {
+            const prompt = document.getElementById('aiTestPrompt').value;
+            const count = document.getElementById('aiQuestionCount').value;
+            const courseName = document.getElementById('aiCourseName').value;
+            const groupCode = document.getElementById('aiGroupCode').value;
+
+            if (!prompt || !groupCode) {
+                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
+                return;
+            }
+
+            document.getElementById('aiStep1').style.display = 'none';
+            document.getElementById('aiStep2').style.display = 'block';
+
+            try {
+                // Here we would normally call DeepSeek API or our backend to handle AI generation
+                // For now, let's simulate a call to the backend
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+                    body: JSON.stringify({
+                        title: `AI Test: ${courseName}`,
+                        courseName,
+                        description: `AI tomonidan generatsiya qilingan test`,
+                        questions: [
+                            { text: "AI tomonidan yaratilgan namunaviy savol 1?", options: ["A", "B", "C", "D"], correctAnswer: "A", score: 5, createdByAI: true }
+                        ],
+                        timeLimit: 30,
+                        groupCode
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('aiTestModal')).hide();
+                    showAdminTests();
+                    showAlert('AI Test muvaffaqiyatli yaratildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                    document.getElementById('aiStep1').style.display = 'block';
+                    document.getElementById('aiStep2').style.display = 'none';
+                }
+            } catch (e) {
+                showAlert('Xatolik!', 'danger');
+                document.getElementById('aiStep1').style.display = 'block';
+                document.getElementById('aiStep2').style.display = 'none';
+            }
+        }
+
+        function showManualTestCreator() {
+            const modal = new bootstrap.Modal(document.getElementById('manualTestModal'));
+            document.getElementById('manualQuestionsContainer').innerHTML = '';
+            addManualQuestion();
+            modal.show();
+        }
+
+        function addManualQuestion() {
+            const container = document.getElementById('manualQuestionsContainer');
+            const qIndex = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'card mb-3 p-3';
+            div.innerHTML = `
+                <div class="mb-2">
+                    <label class="form-label">Savol ${qIndex + 1}</label>
+                    <input type="text" class="form-control question-text">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant A"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant B"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant C"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant D"></div>
+                </div>
+                <div>
+                    <label class="form-label">To'g'ri javob</label>
+                    <select class="form-select correct-answer">
+                        <option value="A">Variant A</option>
+                        <option value="B">Variant B</option>
+                        <option value="C">Variant C</option>
+                        <option value="D">Variant D</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        async function saveManualTest() {
+            const title = document.getElementById('manualTestTitle').value;
+            const courseName = document.getElementById('manualCourseName').value;
+            const groupCode = document.getElementById('manualGroupCode').value;
+            const timeLimit = document.getElementById('manualTimeLimit').value;
+
+            const questions = [];
+            document.querySelectorAll('#manualQuestionsContainer .card').forEach(card => {
+                const text = card.querySelector('.question-text').value;
+                const opts = Array.from(card.querySelectorAll('.opt')).map(i => i.value);
+                const correctLetter = card.querySelector('.correct-answer').value;
+                const correctAnswer = opts[correctLetter.charCodeAt(0) - 65];
+                questions.push({ text, options: opts, correctAnswer, score: 5 });
+            });
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCode })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('manualTestModal')).hide();
+                    showAdminTests();
+                    showAlert('Test saqlandi', 'success');
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        function showAddAdminModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addAdminModal'));
+            modal.show();
+        }
+
+        async function saveAdmin() {
+            const firstName = document.getElementById('newAdminFirstName').value;
+            const lastName = document.getElementById('newAdminLastName').value;
+            const phone = document.getElementById('newAdminPhone').value;
+            const password = document.getElementById('newAdminPassword').value;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, phone, password })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('addAdminModal')).hide();
+                    showAdminManagement();
+                    showAlert('Admin yaratildi', 'success');
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function deleteAdmin(id) {
+            if (!confirm('Ushbu adminni o\'chirishni istaysizmi?')) return;
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/delete/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showAdminManagement();
+                    showAlert('Admin o\'chirildi', 'success');
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function exportResults() {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
+            const data = await response.json();
+            const exportData = data.results.map(r => ({
+                'O\'quvchi': `${r.userId?.firstName} ${r.userId?.lastName}`,
+                'Guruh': r.userId?.groupCode,
+                'Test': r.testId?.title,
+                'Ball': r.score,
+                'Jami': r.totalScore,
+                'Foiz': r.percentage + '%',
+                'Natija': r.passed ? "O'tdi" : "O'tmadi",
+                'Sana': formatDate(r.submittedAt)
+            }));
+            exportToExcel(exportData, "Test_Natijalari");
+        }
+
+        // --- Enhancing existing functions to include export buttons ---
+
+        async function showAdminStudents() {
+            showSection('adminSection');
+            currentPage = 'adminStudents';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-users"></i> O'quvchilar</h3>
+                        <button class="btn btn-success" onclick="exportStudents()">
+                            <i class="fas fa-file-excel"></i> Excelga export
+                        </button>
+                    </div>
+                `;
+                // ... rest of the original logic for table ...
+                html += `
+                    <div class="table-responsive">
+                        <table class="table table-hover bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>Ism</th><th>Guruh</th><th>Telefon</th><th>Sana</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.students.map(s => `
+                                    <tr>
+                                        <td>${s.firstName} ${s.lastName}</td>
+                                        <td>${s.groupCode}</td>
+                                        <td>${s.phone}</td>
+                                        <td>${formatDate(s.createdAt)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminResults() {
+            showSection('adminSection');
+            currentPage = 'adminResults';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-chart-bar"></i> Natijalar</h3>
+                        <button class="btn btn-success" onclick="exportResults()">
+                            <i class="fas fa-file-excel"></i> Excelga export
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>O'quvchi</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Sana</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.results.map(r => `
+                                    <tr>
+                                        <td>${r.userId?.firstName} ${r.userId?.lastName}</td>
+                                        <td>${r.testId?.title}</td>
+                                        <td>${r.score}/${r.totalScore}</td>
+                                        <td>${r.percentage}%</td>
+                                        <td>${formatDate(r.submittedAt)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminTests() {
+            showSection('adminSection');
+            currentPage = 'adminTests';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-list-alt"></i> Testlar</h3>
+                        <div class="btn-group">
+                            <button class="btn btn-ai" onclick="showAITestCreator()">AI Test</button>
+                            <button class="btn btn-primary" onclick="showManualTestCreator()">Yangi Test</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        ${data.tests.map(test => `
+                            <div class="col-md-4 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">${test.title}</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Kurs:</strong> ${test.courseName}</p>
+                                        <p><strong>Guruh:</strong> ${test.groupCode}</p>
+                                        <p><strong>Savollar:</strong> ${test.questions.length}</p>
+                                        <p><strong>Vaqt:</strong> ${test.timeLimit} daq</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+    </script>
+</body>
+
+</html>
