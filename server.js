@@ -306,4 +306,14 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+// Keep-alive ping logic for Render (prevents sleeping)
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+setInterval(() => {
+    axios.get(`${RENDER_URL}/api/ping`).catch(() => { });
+}, 600000); // Every 10 minutes
+
+app.get('/api/ping', (req, res) => res.json({ status: 'alive' }));
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server muvaffaqiyatli ishga tushdi: Port ${PORT}`);
+});
