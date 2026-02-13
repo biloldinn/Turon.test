@@ -1001,9 +1001,10 @@
         // CONFIGURATION & GLOBAL VARIABLES
         // ============================================
         const CONFIG = {
-            API_BASE_URL: window.location.origin + '/api',
-            SOCKET_URL: window.location.origin
+            API_BASE_URL: '/api',
+            SOCKET_URL: '/'
         };
+        console.log('API CONFIG:', CONFIG);
 
         let currentUser = null;
         let currentTest = null;

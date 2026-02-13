@@ -1001,11 +1001,10 @@
         // CONFIGURATION & GLOBAL VARIABLES
         // ============================================
         const CONFIG = {
-            API_BASE_URL: 'http://localhost:5000/api',
-            MONGODB_URI: 'mongodb://atlas-sql-698a0827ec29e1d63d4c2309-dculjc.a.query.mongodb.net/turon_education?ssl=true&authSource=admin',
-            DEEPSEEK_API_KEY: 'sk-29e381ccade94a0182862cba7b2a663d',
-            SOCKET_URL: 'http://localhost:5000'
+            API_BASE_URL: '/api',
+            SOCKET_URL: '/'
         };
+        console.log('API CONFIG:', CONFIG);
 
         let currentUser = null;
         let currentTest = null;
