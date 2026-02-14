@@ -54,8 +54,8 @@ const testSchema = new mongoose.Schema({
     timeLimit: { type: Number, default: 30 },
     totalScore: { type: Number, default: 100 },
     startTime: { type: Date, default: Date.now },
-    endTime: { type: Date, default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-    groupCode: { type: String, required: true },
+    endTime: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // 30 kunlik muddat
+    groupCodes: { type: [String], required: true }, // Changed from groupCode to groupCodes Array
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
 });
@@ -97,7 +97,7 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
-const upload = multer({ storage });
+const upload = multer({ dest: 'uploads/' });
 
 // Helper
 async function logActivity(userId, activity, details = {}) {
@@ -164,7 +164,7 @@ app.post('/api/register', async (req, res) => {
 // Student
 app.get('/api/tests/student/:groupCode', async (req, res) => {
     try {
-        const tests = await Test.find({ groupCode: req.params.groupCode }).lean().sort({ createdAt: -1 });
+        const tests = await Test.find({ groupCodes: req.params.groupCode }).lean().sort({ createdAt: -1 });
         const userId = req.headers['user-id'];
         for (let test of tests) {
             const result = await Result.findOne({ userId, testId: test._id });
@@ -240,12 +240,100 @@ app.get('/api/admin/students', async (req, res) => {
 
 app.post('/api/admin/tests/create', async (req, res) => {
     try {
-        const { title, courseName, description, questions, timeLimit, groupCode } = req.body;
+        const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
         const totalScore = questions.reduce((sum, q) => sum + (q.score || 5), 0);
-        const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCode, createdBy: req.headers['user-id'] });
+        // Ensure groupCodes is an array
+        const groups = Array.isArray(groupCodes) ? groupCodes : [groupCodes];
+        const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups, createdBy: req.headers['user-id'] });
         await test.save();
         res.json({ success: true, testId: test._id });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/admin/tests/update/:id', async (req, res) => {
+    try {
+        const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
+        const totalScore = questions.reduce((sum, q) => sum + (q.score || 5), 0);
+        const groups = Array.isArray(groupCodes) ? groupCodes : [groupCodes];
+        await Test.findByIdAndUpdate(req.params.id, { title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/admin/tests/delete/:id', async (req, res) => {
+    try {
+        await Test.findByIdAndDelete(req.params.id);
+        await Result.deleteMany({ testId: req.params.id });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// AI Test Generation (Refined)
+app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res) => {
+    try {
+        const { topic, count } = req.body;
+        const API_KEY = process.env.AI_API_KEY;
+        let contextText = topic || "";
+
+        // If file is uploaded, extract text
+        if (req.file) {
+            const dataBuffer = fs.readFileSync(req.file.path);
+            const data = await pdf(dataBuffer);
+            contextText = data.text;
+            // Clean up uploaded file
+            fs.unlinkSync(req.file.path);
+        }
+
+        if (!API_KEY) {
+            const mockQuestions = Array.from({ length: parseInt(count) || 5 }).map((_, i) => ({
+                text: `${topic || "Fayl"} bo'yicha mukammal AI savoli №${i + 1}`,
+                options: ["To'g'ri javob", "Noto'g'ri 1", "Noto'g'ri 2", "Noto'g'ri 3"],
+                correctAnswer: "To'g'ri javob",
+                score: 5,
+                createdByAI: true
+            }));
+            return res.json({ success: true, questions: mockQuestions });
+        }
+
+        const prompt = `
+            Sen o'quv markazi uchun professional test tuzuvchi ekspertsan. 
+            Quyidagi matn yoki mavzu asosida darsliklar darajasidagi mukammal, mantiqiy va sifatli test savollarini tuz.
+            
+            MAVZU/MATN: ${contextText.substring(0, 4000)}
+            SAVOLLAR SONI: ${count}
+            TIL: O'zbek tili
+            
+            TALABLAR:
+            1. Har bir savolning 4 ta varianti bo'lsin.
+            2. Variantlar bir-biriga mantiqan yaqin, lekin faqat bittasi to'g'ri bo'lsin (chalg'ituvchi variantlar ishlat).
+            3. Savollar faqat faktik emas, balki mantiqiy fikrlashga ham yo'naltirilgan bo'lsin.
+            4. FAQAT JSON formatda javob qaytar (array: [{"text": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "To'g'ri javob texti", "score": 5}]).
+        `;
+
+        const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+            model: "deepseek-chat",
+            messages: [
+                { role: "system", content: "Sen faqat JSON qaytaradigan, professional test tuzuvchi yordamchisan." },
+                { role: "user", content: prompt }
+            ],
+            response_format: { type: 'json_object' }
+        }, {
+            headers: { 'Authorization': `Bearer ${API_KEY}` }
+        });
+
+        let content = response.data.choices[0].message.content;
+        // Clean markdown if AI included it
+        content = content.replace(/```json|```/g, '').trim();
+
+        const parsed = JSON.parse(content);
+        const questions = parsed.questions || parsed;
+
+        res.json({ success: true, questions: questions.map(q => ({ ...q, createdByAI: true })) });
+
+    } catch (e) {
+        console.error("AI Error:", e);
+        res.status(500).json({ success: false, error: "AI test yaratishda xatolik: " + e.message });
+    }
 });
 
 app.get('/api/admin/tests', async (req, res) => {
@@ -281,6 +369,23 @@ app.post('/api/admin/create', async (req, res) => {
 app.delete('/api/admin/delete/:id', async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/admin/students/delete/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        await Result.deleteMany({ userId: req.params.id });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/admin/students/delete/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        // Delete student's results too
+        await Result.deleteMany({ userId: req.params.id });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });

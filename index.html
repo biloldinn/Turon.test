@@ -1599,27 +1599,12 @@
                     </div>
                 `;
 
-                // Load questions
-                const container = document.getElementById('testQuestionsContainer');
-                currentTest.questions.forEach((question, index) => {
-                    container.innerHTML += `
-                        <div class="${question.createdByAI ? 'question-box ai-question-box' : 'question-box'}">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="mb-0">${index + 1}. ${question.text}</h5>
-                                <span class="badge bg-success">${question.score || 5} ball</span>
-                            </div>
-                            <div class="options">
-                                ${question.options.map((option, optIndex) => `
-                                    <label class="option-label" onclick="selectOption(this, ${index}, '${option}')">
-                                        <input type="radio" name="q${index}" value="${option}" style="display:none;">
-                                        <span class="me-2">${String.fromCharCode(65 + optIndex)})</span>
-                                        ${option}
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                });
+                // Randomize questions
+                currentTest.questions = shuffleArray([...currentTest.questions]);
+                currentTest.currentQuestionIndex = 0;
+                currentTest.answers = {};
+
+                renderTestQuestion();
 
                 // Start timer
                 startTimer();
@@ -1643,19 +1628,67 @@
             }
         }
 
-        function selectOption(element, questionIndex, optionValue) {
-            const questionBox = element.closest('.question-box');
-            questionBox.querySelectorAll('.option-label').forEach(label => {
-                label.classList.remove('selected');
-            });
-            element.classList.add('selected');
+        function renderTestQuestion() {
+            const index = currentTest.currentQuestionIndex;
+            const question = currentTest.questions[index];
+            const content = document.getElementById('testQuestionsContainer');
 
-            if (!currentTest.answers) {
-                currentTest.answers = {};
+            content.innerHTML = `
+                <div class="${question.createdByAI ? 'question-box ai-question-box' : 'question-box'} animate__animated animate__fadeInRight">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-primary">Savol ${index + 1} / ${currentTest.questions.length}</span>
+                        <span class="badge bg-success">${question.score || 5} ball</span>
+                    </div>
+                    <h4 class="mb-4">${question.text}</h4>
+                    <div class="options">
+                        ${question.options.map((option, optIndex) => `
+                            <label class="option-label ${currentTest.answers[index] === option ? 'selected' : ''}" 
+                                onclick="selectOption(this, ${index}, '${option}')">
+                                <span class="me-2">${String.fromCharCode(65 + optIndex)})</span>
+                                ${option}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <button class="btn btn-outline-secondary btn-lg px-4" onclick="prevQuestion()" ${index === 0 ? 'disabled' : ''}>
+                        <i class="fas fa-arrow-left"></i> Oldingisi
+                    </button>
+                    ${index === currentTest.questions.length - 1 ?
+                    `<button class="btn btn-success btn-lg px-5" onclick="submitTest()">
+                            Tugatish <i class="fas fa-check-circle"></i>
+                        </button>` :
+                    `<button class="btn btn-primary btn-lg px-4" onclick="nextQuestion()">
+                            Keyingisi <i class="fas fa-arrow-right"></i>
+                        </button>`
+                }
+                </div>
+            `;
+        }
+
+        function nextQuestion() {
+            if (currentTest.currentQuestionIndex < currentTest.questions.length - 1) {
+                currentTest.currentQuestionIndex++;
+                renderTestQuestion();
             }
+        }
+
+        function prevQuestion() {
+            if (currentTest.currentQuestionIndex > 0) {
+                currentTest.currentQuestionIndex--;
+                renderTestQuestion();
+            }
+        }
+
+        function selectOption(element, questionIndex, optionValue) {
             currentTest.answers[questionIndex] = optionValue;
 
-            // Send screen update for mirroring
+            // UI Update
+            const labels = element.parentElement.querySelectorAll('.option-label');
+            labels.forEach(l => l.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // Send screen update
             if (socket) {
                 socket.emit('screen_update', {
                     studentId: currentUser.id,
@@ -1665,6 +1698,14 @@
                     testId: currentTest._id
                 });
             }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         function startTimer() {
@@ -1744,9 +1785,13 @@
                         });
                     }
 
-                    if (data.passed) {
+                    if (data.percentage >= 90) {
                         triggerConfetti();
-                        const msg = new SpeechSynthesisUtterance("Tabriklayman! Siz testdan muvaffaqiyatli o'tdingiz.");
+                        const msg = new SpeechSynthesisUtterance("Tabriklayman! Siz testdan a'lo baho bilan muvaffaqiyatli o'tdingiz.");
+                        msg.lang = 'uz-UZ';
+                        window.speechSynthesis.speak(msg);
+                    } else if (data.passed) {
+                        const msg = new SpeechSynthesisUtterance("Siz testdan o'tdingiz.");
                         msg.lang = 'uz-UZ';
                         window.speechSynthesis.speak(msg);
                     }
@@ -1767,8 +1812,8 @@
                 <div class="row justify-content-center">
                     <div class="col-md-10 col-lg-8">
                         <div class="result-card">
-                            <h2><i class="fas fa-trophy"></i> Tabriklaymiz!</h2>
-                            <p class="mb-4">Testni muvaffaqiyatli yakunladingiz</p>
+                            ${result.percentage >= 90 ? `<h2><i class="fas fa-trophy text-warning"></i> Tabriklaymiz!</h2>` : `<h2>Test yakunlandi</h2>`}
+                            <p class="mb-4">${result.percentage >= 90 ? 'Siz a\'lo natija ko\'rsatdingiz' : 'Test natijangiz bilan tanishing'}</p>
                             
                             <div class="score-circle ${result.passed ? 'bg-success' : 'bg-danger'}">
                                 ${result.percentage}%
@@ -2450,43 +2495,98 @@
             modal.show();
         }
 
+        // AI Drop Zone & File Input
+        const aiDropZone = document.getElementById('aiDropZone');
+        const aiFileInput = document.getElementById('aiFileInput');
+
+        if (aiDropZone) {
+            aiDropZone.onclick = () => aiFileInput.click();
+            aiDropZone.ondragover = (e) => { e.preventDefault(); aiDropZone.classList.add('active'); };
+            aiDropZone.ondragleave = () => aiDropZone.classList.remove('active');
+            aiDropZone.ondrop = (e) => {
+                e.preventDefault();
+                aiDropZone.classList.remove('active');
+                if (e.dataTransfer.files.length) {
+                    aiFileInput.files = e.dataTransfer.files;
+                    handleAIFileSelect();
+                }
+            };
+        }
+
+        if (aiFileInput) {
+            aiFileInput.onchange = handleAIFileSelect;
+        }
+
+        function handleAIFileSelect() {
+            const file = aiFileInput.files[0];
+            if (file) {
+                aiDropZone.innerHTML = `
+                    <i class="fas fa-file-pdf fa-3x mb-3 text-danger"></i>
+                    <p class="mb-0"><strong>${file.name}</strong></p>
+                    <p class="small text-muted">${formatFileSize(file.size)}</p>
+                    <button class="btn btn-sm btn-link text-danger" onclick="clearAIFile(event)">O'chirish</button>
+                `;
+            }
+        }
+
+        function clearAIFile(e) {
+            if (e) e.stopPropagation();
+            aiFileInput.value = '';
+            aiDropZone.innerHTML = `
+                <i class="fas fa-file-pdf fa-3x mb-3 text-danger"></i>
+                <p>PDF yoki Word faylni tashlang yoki tanlang</p>
+                <input type="file" id="aiFileInput" hidden accept=".pdf,.doc,.docx">
+            `;
+            // Re-attach listeners because we replaced innerHTML
+            const newFileInput = document.getElementById('aiFileInput');
+            newFileInput.onchange = handleAIFileSelect;
+        }
+
         async function generateAITest() {
-            const prompt = document.getElementById('aiTestPrompt').value;
+            const topic = document.getElementById('aiTestPrompt').value;
             const count = document.getElementById('aiQuestionCount').value;
             const courseName = document.getElementById('aiCourseName').value;
-            const groupCode = document.getElementById('aiGroupCode').value;
+            const groupCodeStr = document.getElementById('aiGroupCode').value;
+            const file = aiFileInput.files[0];
 
-            if (!prompt || !groupCode) {
-                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
+            if ((!topic && !file) || !groupCodeStr) {
+                showAlert('Iltimos, mavzu yozing yoki fayl yuklang, va guruh kodini kiriting', 'warning');
                 return;
             }
+
+            const formData = new FormData();
+            formData.append('topic', topic);
+            formData.append('count', count);
+            if (file) formData.append('file', file);
 
             document.getElementById('aiStep1').style.display = 'none';
             document.getElementById('aiStep2').style.display = 'block';
 
             try {
-                // Here we would normally call DeepSeek API or our backend to handle AI generation
-                // For now, let's simulate a call to the backend
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/generate-ai`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
-                    body: JSON.stringify({
-                        title: `AI Test: ${courseName}`,
-                        courseName,
-                        description: `AI tomonidan generatsiya qilingan test`,
-                        questions: [
-                            { text: "AI tomonidan yaratilgan namunaviy savol 1?", options: ["A", "B", "C", "D"], correctAnswer: "A", score: 5, createdByAI: true }
-                        ],
-                        timeLimit: 30,
-                        groupCode
-                    })
+                    headers: { 'user-id': currentUser.id },
+                    body: formData
                 });
 
                 const data = await response.json();
                 if (data.success) {
+                    // Switch to manual test modal to review and save
+                    const manualModal = new bootstrap.Modal(document.getElementById('manualTestModal'));
                     bootstrap.Modal.getInstance(document.getElementById('aiTestModal')).hide();
-                    showAdminTests();
-                    showAlert('AI Test muvaffaqiyatli yaratildi', 'success');
+
+                    document.getElementById('manualTestTitle').value = `AI Test: ${topic || (file ? file.name : '')}`;
+                    document.getElementById('manualCourseName').value = courseName;
+                    document.getElementById('manualGroupCode').value = groupCodeStr;
+
+                    const container = document.getElementById('manualQuestionsContainer');
+                    container.innerHTML = '';
+                    data.questions.forEach((q, i) => {
+                        addManualQuestionWithData(q);
+                    });
+
+                    manualModal.show();
+                    showAlert('AI savollarni yaratdi! Ko\'rib chiqing va saqlang.', 'success');
                 } else {
                     showAlert('Xatolik: ' + data.error, 'danger');
                     document.getElementById('aiStep1').style.display = 'block';
@@ -2497,6 +2597,35 @@
                 document.getElementById('aiStep1').style.display = 'block';
                 document.getElementById('aiStep2').style.display = 'none';
             }
+        }
+
+        function addManualQuestionWithData(q) {
+            const container = document.getElementById('manualQuestionsContainer');
+            const qIndex = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'card mb-3 p-3';
+            div.innerHTML = `
+                <div class="mb-2">
+                    <label class="form-label">Savol ${qIndex + 1}</label>
+                    <input type="text" class="form-control question-text" value="${q.text || ''}">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant A" value="${q.options?.[0] || ''}"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant B" value="${q.options?.[1] || ''}"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant C" value="${q.options?.[2] || ''}"></div>
+                    <div class="col-md-6 mb-2"><input type="text" class="form-control opt" placeholder="Variant D" value="${q.options?.[3] || ''}"></div>
+                </div>
+                <div>
+                    <label class="form-label">To'g'ri javob</label>
+                    <select class="form-select correct-answer">
+                        <option value="A" ${q.correctAnswer === q.options?.[0] ? 'selected' : ''}>Variant A</option>
+                        <option value="B" ${q.correctAnswer === q.options?.[1] ? 'selected' : ''}>Variant B</option>
+                        <option value="C" ${q.correctAnswer === q.options?.[2] ? 'selected' : ''}>Variant C</option>
+                        <option value="D" ${q.correctAnswer === q.options?.[3] ? 'selected' : ''}>Variant D</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
         }
 
         function showManualTestCreator() {
@@ -2538,8 +2667,11 @@
         async function saveManualTest() {
             const title = document.getElementById('manualTestTitle').value;
             const courseName = document.getElementById('manualCourseName').value;
-            const groupCode = document.getElementById('manualGroupCode').value;
+            const groupCodeStr = document.getElementById('manualGroupCode').value;
             const timeLimit = document.getElementById('manualTimeLimit').value;
+            const testId = document.getElementById('manualTestModal').dataset.testId;
+
+            const groupCodes = groupCodeStr.split(',').map(g => g.trim()).filter(g => g);
 
             const questions = [];
             document.querySelectorAll('#manualQuestionsContainer .card').forEach(card => {
@@ -2551,16 +2683,52 @@
             });
 
             try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                const url = testId ? `${CONFIG.API_BASE_URL}/admin/tests/update/${testId}` : `${CONFIG.API_BASE_URL}/admin/tests/create`;
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
-                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCode })
+                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCodes })
                 });
                 const data = await response.json();
                 if (data.success) {
                     bootstrap.Modal.getInstance(document.getElementById('manualTestModal')).hide();
                     showAdminTests();
-                    showAlert('Test saqlandi', 'success');
+                    showAlert(testId ? 'Test yangilandi' : 'Test saqlandi', 'success');
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function editTest(id) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests`);
+                const data = await response.json();
+                const test = data.tests.find(t => t._id === id);
+
+                if (test) {
+                    const modal = new bootstrap.Modal(document.getElementById('manualTestModal'));
+                    document.getElementById('manualTestModal').dataset.testId = id;
+                    document.getElementById('manualTestTitle').value = test.title;
+                    document.getElementById('manualCourseName').value = test.courseName;
+                    document.getElementById('manualGroupCode').value = (test.groupCodes || [test.groupCode]).join(', ');
+                    document.getElementById('manualTimeLimit').value = test.timeLimit;
+
+                    const container = document.getElementById('manualQuestionsContainer');
+                    container.innerHTML = '';
+                    test.questions.forEach(q => addManualQuestionWithData(q));
+
+                    modal.show();
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function deleteTest(id) {
+            if (!confirm('Ushbu testni o\'chirishni istaysizmi? Natijalar ham o\'chib ketadi.')) return;
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/delete/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showAdminTests();
+                    showAlert('Test o\'chirildi', 'success');
                 }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
@@ -2631,6 +2799,13 @@
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
                 const data = await response.json();
 
+                // Group by groupCode
+                const groups = {};
+                data.students.forEach(s => {
+                    if (!groups[s.groupCode]) groups[s.groupCode] = [];
+                    groups[s.groupCode].push(s);
+                });
+
                 let html = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3><i class="fas fa-users"></i> O'quvchilar</h3>
@@ -2639,27 +2814,51 @@
                         </button>
                     </div>
                 `;
-                // ... rest of the original logic for table ...
-                html += `
-                    <div class="table-responsive">
-                        <table class="table table-hover bg-white rounded shadow-sm">
-                            <thead>
-                                <tr><th>Ism</th><th>Guruh</th><th>Telefon</th><th>Sana</th></tr>
-                            </thead>
-                            <tbody>
-                                ${data.students.map(s => `
-                                    <tr>
-                                        <td>${s.firstName} ${s.lastName}</td>
-                                        <td>${s.groupCode}</td>
-                                        <td>${s.phone}</td>
-                                        <td>${formatDate(s.createdAt)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+
+                Object.keys(groups).sort().forEach(groupCode => {
+                    html += `
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-users"></i> Guruh: ${groupCode}</h5>
+                                <span class="badge bg-primary">${groups[groupCode].length} ta o'quvchi</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr><th>Ism</th><th>Telefon</th><th>Sana</th><th>Amallar</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        ${groups[groupCode].map(s => `
+                                            <tr>
+                                                <td>${s.firstName} ${s.lastName}</td>
+                                                <td>${s.phone}</td>
+                                                <td>${formatDate(s.createdAt)}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
                 content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm('Ushbu o\'quvchini o\'chirishni istaysizmi?')) return;
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students/delete/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showAdminStudents();
+                    showAlert('O\'quvchi o\'chirildi', 'success');
+                }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
 
@@ -2721,18 +2920,28 @@
                             <button class="btn btn-primary" onclick="showManualTestCreator()">Yangi Test</button>
                         </div>
                     </div>
+                    <hr>
                     <div class="row">
                         ${data.tests.map(test => `
                             <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="mb-0">${test.title}</h5>
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0 text-primary">${test.title}</h5>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm" data-bs-toggle="dropdown">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" onclick="editTest('${test._id}')"><i class="fas fa-edit"></i> Tahrirlash</a></li>
+                                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteTest('${test._id}')"><i class="fas fa-trash"></i> O'chirish</a></li>
+                                            </ul>
+                                        </div>
                                     </div>
                                     <div class="card-body">
-                                        <p><strong>Kurs:</strong> ${test.courseName}</p>
-                                        <p><strong>Guruh:</strong> ${test.groupCode}</p>
-                                        <p><strong>Savollar:</strong> ${test.questions.length}</p>
-                                        <p><strong>Vaqt:</strong> ${test.timeLimit} daq</p>
+                                        <p class="mb-1"><strong><i class="fas fa-book"></i> Kurs:</strong> ${test.courseName}</p>
+                                        <p class="mb-1"><strong><i class="fas fa-users"></i> Guruhlar:</strong> ${(test.groupCodes || [test.groupCode]).join(', ')}</p>
+                                        <p class="mb-1"><strong><i class="fas fa-question-circle"></i> Savollar:</strong> ${test.questions.length} ta</p>
+                                        <p class="mb-1"><strong><i class="fas fa-clock"></i> Vaqt:</strong> ${test.timeLimit} daq</p>
                                     </div>
                                 </div>
                             </div>
