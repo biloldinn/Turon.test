@@ -552,8 +552,8 @@
         <div class="container">
             <div class="login-container">
                 <div class="text-center mb-4">
-                    <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
-                    <h2>Turon O'quv Markazi</h2>
+                    <img src="logo.jpg" alt="TURON Logo" style="height: 100px;" class="mb-3">
+                    <h2>TURON O'quv markazi</h2>
                     <p class="text-muted">AI Test Tizimiga xush kelibsiz</p>
                 </div>
 
@@ -647,9 +647,12 @@
         <nav class="student-nav">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mb-0"><i class="fas fa-graduation-cap text-primary"></i> O'quvchi Paneli</h4>
-                        <small id="studentInfo" class="text-muted"></small>
+                    <div class="d-flex align-items-center">
+                        <img src="logo.jpg" alt="Logo" style="height: 40px;" class="me-2">
+                        <div>
+                            <h4 class="mb-0">TURON O'quv markazi</h4>
+                            <small id="studentInfo" class="text-muted"></small>
+                        </div>
                     </div>
                     <div>
                         <button class="btn btn-outline-primary me-2" onclick="showStudentTests()">
@@ -680,7 +683,8 @@
     <div id="adminSection" class="section">
         <div class="admin-sidebar no-print">
             <div class="text-center mb-4 px-3">
-                <h4 class="mb-1"><i class="fas fa-graduation-cap"></i> Turon Admin</h4>
+                <img src="logo.jpg" alt="Logo" style="height: 60px;" class="mb-2">
+                <h4 class="mb-1">TURON Admin Panel</h4>
                 <small class="text-white-50">AI Test Tizimi</small>
                 <div class="mt-3">
                     <span class="badge bg-success" id="onlineCount">Online: 0</span>
@@ -747,7 +751,7 @@
 
             <div class="mt-auto px-3 py-3">
                 <small class="text-white-50 d-block">Version 2.0</small>
-                <small class="text-white-50 d-block">© 2024 Turon O'quv Markazi</small>
+                <small class="text-white-50 d-block">© 2024 TURON O'quv markazi</small>
             </div>
         </div>
 
@@ -809,41 +813,77 @@
                 </div>
                 <div class="modal-body">
                     <div id="aiStep1">
-                        <div class="mb-4">
-                            <label class="form-label">Kurs nomi</label>
-                            <input type="text" class="form-control" id="aiCourseName"
-                                placeholder="Masalan: Frontend Development">
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Kurs/Fan nomi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-book"></i></span>
+                                    <input type="text" class="form-control" id="aiCourseName"
+                                        placeholder="Masalan: Ona tili, Matematika...">
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Guruh kodi(lari)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                    <input type="text" class="form-control" id="aiGroupCode" placeholder="232, 233...">
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Test mavzusi yoki matni</label>
-                            <textarea class="form-control" id="aiTestPrompt" rows="5"
-                                placeholder="Test mavzusini yozing yoki matnni shu yerga tashlang..."></textarea>
+
+                        <div class="mb-3">
+                            <label class="form-label">Test mavzusi yoki batafsil tushuntirish</label>
+                            <textarea class="form-control" id="aiTestPrompt" rows="4"
+                                placeholder="Mavzuni yozing (masalan: Ot so'z turkumi) yoki matnni shu yerga tashlang..."></textarea>
+                            <div class="form-text text-primary"><i class="fas fa-magic"></i> AI mavzu bo'yicha eng zo'r
+                                savollarni o'zi tuzib beradi.</div>
                         </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Qiyinchilik darajasi</label>
+                                <select class="form-select" id="aiDifficulty">
+                                    <option value="easy">Oson (Asosiy tushunchalar)</option>
+                                    <option value="medium" selected>O'rta (Mantiqiy savollar)</option>
+                                    <option value="hard">Qiyin (Chuqur tahliliy)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Sinf / Daraja</label>
+                                <input type="text" class="form-control" id="aiGradeLevel" placeholder="Masalan: 9-sinf">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Savollar soni</label>
+                                <input type="number" class="form-control" id="aiQuestionCount" value="10" min="5"
+                                    max="50">
+                            </div>
+                        </div>
+
+                        <div class="divider text-center mb-4">
+                            <span class="px-3 bg-white text-muted">YOKI FAYL YUKLANG</span>
+                        </div>
+
                         <div class="drop-zone mb-4" id="aiDropZone">
                             <i class="fas fa-file-pdf fa-3x mb-3 text-danger"></i>
                             <p>PDF yoki Word faylni tashlang yoki tanlang</p>
                             <input type="file" id="aiFileInput" hidden accept=".pdf,.doc,.docx">
                         </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Savollar soni</label>
-                                <input type="number" class="form-control" id="aiQuestionCount" value="10" min="5"
-                                    max="50">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Guruh kodi</label>
-                                <input type="text" class="form-control" id="aiGroupCode" placeholder="232">
-                            </div>
-                        </div>
-                        <button class="btn btn-ai btn-lg w-100" onclick="generateAITest()">
-                            <i class="fas fa-magic"></i> Testni generatsiya qilish
+
+                        <button class="btn btn-ai btn-lg w-100 shadow-sm" onclick="generateAITest()">
+                            <i class="fas fa-magic"></i> Mukammal Test Yaratish
                         </button>
                     </div>
                     <div id="aiStep2" style="display:none;">
                         <div class="text-center py-5">
-                            <div class="spinner-border text-ai mb-3" style="width: 3rem; height: 3rem;"></div>
-                            <h4>AI test yaratmoqda...</h4>
-                            <p class="text-muted">Bu bir necha soniya vaqt olishi mumkin</p>
+                            <div class="ai-pulse mb-3">
+                                <i class="fas fa-robot fa-5x text-ai"></i>
+                            </div>
+                            <h4 class="mt-3">AI Siz uchun eng zo'r testlarni tuzmoqda...</h4>
+                            <p class="text-muted">Bu jarayon 5-15 soniya vaqt olishi mumkin</p>
+                            <div class="progress mt-4 mx-auto" style="width: 70%; height: 6px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-ai"
+                                    style="width: 100%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1806,34 +1846,45 @@
             }
         }
 
+        function getBaho(percentage) {
+            if (percentage >= 90) return { grade: 5, text: "A'lo", color: "text-success" };
+            if (percentage >= 70) return { grade: 4, text: "Yaxshi", color: "text-primary" };
+            if (percentage >= 50) return { grade: 3, text: "Qoniqarli", color: "text-warning" };
+            return { grade: 2, text: "Yomon", color: "text-danger" };
+        }
+
         function showTestResult(result) {
             const content = document.getElementById('studentContent');
+            const baho = getBaho(result.percentage);
+
             content.innerHTML = `
                 <div class="row justify-content-center">
                     <div class="col-md-10 col-lg-8">
-                        <div class="result-card">
+                        <div class="result-card animate__animated animate__zoomIn">
                             ${result.percentage >= 90 ? `<h2><i class="fas fa-trophy text-warning"></i> Tabriklaymiz!</h2>` : `<h2>Test yakunlandi</h2>`}
                             <p class="mb-4">${result.percentage >= 90 ? 'Siz a\'lo natija ko\'rsatdingiz' : 'Test natijangiz bilan tanishing'}</p>
                             
                             <div class="score-circle ${result.passed ? 'bg-success' : 'bg-danger'}">
                                 ${result.percentage}%
                             </div>
+
+                            <div class="baho-box mt-3 mb-4">
+                                <h4 class="text-white">Baho: <span class="badge bg-white ${baho.color}">${baho.grade} (${baho.text})</span></h4>
+                            </div>
                             
                             <h3 class="mb-4">${currentTest.title}</h3>
                             
                             <div class="row mt-4">
                                 <div class="col-md-6 mb-3">
-                                    <div class="bg-white text-dark p-3 rounded">
+                                    <div class="bg-white text-dark p-3 rounded shadow-sm">
                                         <h6>Olingan ball</h6>
                                         <h4 class="text-success">${result.score}/${result.totalScore}</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <div class="bg-white text-dark p-3 rounded">
-                                        <h6>Natija</h6>
-                                        <h4 class="${result.passed ? 'text-success' : 'text-danger'}">
-                                            ${result.passed ? "✅ O'tdi" : "❌ O'tmadi"}
-                                        </h4>
+                                    <div class="bg-white text-dark p-3 rounded shadow-sm">
+                                        <h6>Sifat darajasi</h6>
+                                        <h4 class="${baho.color}">${baho.text}</h4>
                                     </div>
                                 </div>
                             </div>
@@ -2547,6 +2598,8 @@
             const count = document.getElementById('aiQuestionCount').value;
             const courseName = document.getElementById('aiCourseName').value;
             const groupCodeStr = document.getElementById('aiGroupCode').value;
+            const difficulty = document.getElementById('aiDifficulty').value;
+            const gradeLevel = document.getElementById('aiGradeLevel').value;
             const file = aiFileInput.files[0];
 
             if ((!topic && !file) || !groupCodeStr) {
@@ -2557,6 +2610,9 @@
             const formData = new FormData();
             formData.append('topic', topic);
             formData.append('count', count);
+            formData.append('difficulty', difficulty);
+            formData.append('gradeLevel', gradeLevel);
+            formData.append('courseName', courseName);
             if (file) formData.append('file', file);
 
             document.getElementById('aiStep1').style.display = 'none';
@@ -2949,6 +3005,327 @@
                     </div>
                 `;
                 content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showLiveMonitoring() {
+            showSection('adminSection');
+            currentPage = 'monitoring';
+            const content = document.getElementById('adminContent');
+
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showLiveMonitoring'));
+            });
+
+            let html = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-desktop"></i> Live Monitoring</h3>
+                    <div class="badge bg-success">Online: ${onlineStudents.size}</div>
+                </div>
+                <div class="row" id="monitoringGrid">
+            `;
+
+            if (onlineStudents.size === 0) {
+                html += `
+                    <div class="col-12">
+                        <div class="alert alert-info">Hozirda hech kim online emas.</div>
+                    </div>
+                `;
+            } else {
+                onlineStudents.forEach(student => {
+                    html += `
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <h5 class="mb-0">${student.name}</h5>
+                                        <span class="badge ${student.status === 'testing' ? 'bg-primary' : 'bg-success'}">
+                                            ${student.status === 'testing' ? '📝 Testda' : '✅ Online'}
+                                        </span>
+                                    </div>
+                                    <p class="small text-muted mb-2">Guruh: ${student.groupCode || 'Noma\'lum'}</p>
+                                    <p class="small text-muted mb-0">Oxirgi faollik: ${formatDate(student.lastUpdate)}</p>
+                                    
+                                    ${student.progress ? `
+                                        <div class="mt-3">
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar" style="width: ${student.progress}%"></div>
+                                            </div>
+                                            <small class="text-muted mt-1 d-block">${Math.round(student.progress)}% yakunlandi</small>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="card-footer bg-white">
+                                    <button class="btn btn-sm btn-outline-primary w-100" onclick="viewScreen('${student.id}')">
+                                        <i class="fas fa-video"></i> Ekranni ko'rish
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `</div>`;
+            content.innerHTML = html;
+        }
+
+        let currentMirrorId = null;
+        function viewScreen(studentId) {
+            const modal = new bootstrap.Modal(document.getElementById('screenViewModal'));
+            const content = document.getElementById('screenViewContent');
+            content.innerHTML = '<div class="text-center p-5 text-white"><h3>Ekranga ulanilmoqda...</h3></div>';
+            modal.show();
+
+            // Set current monitoring student
+            currentPage = 'screenMirror';
+            currentMirrorId = studentId;
+            showScreenMirror();
+        }
+
+        function showScreenMirror() {
+            if (currentPage !== 'screenMirror') return;
+
+            const content = document.getElementById('screenViewContent');
+            const data = screenMirrorData.get(currentMirrorId);
+
+            if (!data) {
+                content.innerHTML = '<div class="text-center p-5 text-white"><h3>Ma\'lumot kutilmoqda...</h3></div>';
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="p-4 text-white">
+                    <h4><i class="fas fa-video"></i> O'quvchi: ${onlineStudents.get(currentMirrorId)?.name || 'Noma\'lum'}</h4>
+                    <div class="bg-dark p-3 rounded" style="min-height: 400px; border: 1px solid #444;">
+                        <div class="mb-3">
+                            <span class="badge bg-primary">Action: ${data.action}</span>
+                            <span class="badge bg-secondary">Vaqt: ${formatDate(data.timestamp)}</span>
+                        </div>
+                        <div class="p-4 bg-white text-dark rounded">
+                            ${data.action === 'answer_selected' ? `
+                                <h5>Savol: ${data.questionIndex + 1}</h5>
+                                <div class="alert alert-info">Tanlangan javob: <strong>${data.selectedOption}</strong></div>
+                            ` : `
+                                <div class="text-center p-5">Harakat: ${data.action}</div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function showAdminFiles() {
+            showSection('adminSection');
+            currentPage = 'files';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/files`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-file-upload"></i> Yuklangan Fayllar</h3>
+                    </div>
+                    <div class="alert alert-info">Fayllar ro'yxati hozircha bo'sh. AI test yaratishda yuklangan fayllar bu yerda ko'rinadi.</div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminActivity() {
+            showSection('adminSection');
+            currentPage = 'activity';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/activity`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-history"></i> Tizim faolligi</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>Vaqt</th><th>Foydalanuvchi</th><th>Harakat</th><th>Tafsilot</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.activities.map(a => `
+                                    <tr>
+                                        <td>${formatDate(a.timestamp)}</td>
+                                        <td>${a.userName || 'Noma\'lum'}</td>
+                                        <td>${getActivityText(a.activity)}</td>
+                                        <td>${a.testTitle || ''} ${a.score ? `(${a.score}%)` : ''}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminStudents() {
+            showSection('adminSection');
+            currentPage = 'students';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-users"></i> O'quvchilar</h3>
+                        <div class="badge bg-primary">Jami: ${data.students.length} ta</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>F.I.SH</th><th>Telefon</th><th>Guruh</th><th>Ro'yxatdan o'tgan</th><th>Amallar</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.students.map(s => `
+                                    <tr>
+                                        <td>${s.firstName} ${s.lastName}</td>
+                                        <td>${s.phone}</td>
+                                        <td><span class="badge bg-secondary">${s.groupCode}</span></td>
+                                        <td>${formatDate(s.createdAt)}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminResults() {
+            showSection('adminSection');
+            currentPage = 'results';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/results/all`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-chart-bar"></i> Barcha Natijalar</h3>
+                        <button class="btn btn-success" onclick="exportResults()">
+                            <i class="fas fa-file-excel"></i> Excelga Yuklash
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>O'quvchi</th><th>Guruh</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Baho</th><th>Sana</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.results.map(r => {
+                    const baho = getBaho(r.percentage);
+                    return `
+                                        <tr>
+                                            <td>${r.userId ? `${r.userId.firstName} ${r.userId.lastName}` : 'O\'chirilgan user'}</td>
+                                            <td>${r.userId ? r.userId.groupCode : '-'}</td>
+                                            <td>${r.testId ? r.testId.title : 'O\'chirilgan test'}</td>
+                                            <td>${r.score}/${r.totalScore}</td>
+                                            <td>${r.percentage}%</td>
+                                            <td><span class="badge bg-light ${baho.color}">${baho.grade}</span></td>
+                                            <td>${formatDate(r.submittedAt)}</td>
+                                        </tr>
+                                    `;
+                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showAdminManagement() {
+            showSection('adminSection');
+            currentPage = 'admins';
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/list`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-user-shield"></i> Adminlar Boshqaruvi</h3>
+                        <button class="btn btn-primary" onclick="showAddAdminModal()">
+                            <i class="fas fa-plus"></i> Yangi Admin
+                        </button>
+                    </div>
+                    <div class="row">
+                        ${data.admins.map(admin => `
+                            <div class="col-md-4 mb-3">
+                                <div class="card shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-danger text-white rounded-circle p-3 me-3">
+                                                <i class="fas fa-user-shield fa-2x"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-0">${admin.firstName} ${admin.lastName}</h5>
+                                                <small class="text-muted">${admin.phone}</small>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger w-100" 
+                                            onclick="deleteAdmin('${admin._id}')" 
+                                            ${admin.phone === 'Biloldin' ? 'disabled' : ''}>
+                                            <i class="fas fa-trash"></i> Adminni O'chirish
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        function getActivityText(activity) {
+            const texts = {
+                'student_login': 'Tizimga kirdi',
+                'test_started': 'Testni boshladi',
+                'test_completed': 'Testni yakunladi',
+                'registration': 'Ro\'yxatdan o\'tdi',
+                'admin_login': 'Admin panelga kirdi',
+                'cheat_warning': 'Anti-cheat ogohlantirish'
+            };
+            return texts[activity] || activity;
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm('Haqiqatdan ham ushbu o\'quvchini o\'chirmoqchimisiz?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/admin/students/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showAlert('O\'quvchi o\'chirildi', 'success');
+                    showAdminStudents();
+                }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
 

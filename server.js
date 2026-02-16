@@ -271,7 +271,7 @@ app.delete('/api/admin/tests/delete/:id', async (req, res) => {
 // AI Test Generation (Refined)
 app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res) => {
     try {
-        const { topic, count } = req.body;
+        const { topic, count, difficulty, gradeLevel, courseName } = req.body;
         const API_KEY = process.env.AI_API_KEY;
         let contextText = topic || "";
 
@@ -280,7 +280,6 @@ app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res)
             const dataBuffer = fs.readFileSync(req.file.path);
             const data = await pdf(dataBuffer);
             contextText = data.text;
-            // Clean up uploaded file
             fs.unlinkSync(req.file.path);
         }
 
@@ -296,24 +295,42 @@ app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res)
         }
 
         const prompt = `
-            Sen o'quv markazi uchun professional test tuzuvchi ekspertsan. 
-            Quyidagi matn yoki mavzu asosida darsliklar darajasidagi mukammal, mantiqiy va sifatli test savollarini tuz.
-            
-            MAVZU/MATN: ${contextText.substring(0, 4000)}
+            Sen o'quv markazi uchun professional, tajribali va qattiqqo'l test tuzuvchi ekspertsan. 
+            Sening vazifang - berilgan mavzu yoki matn asosida O'QUVCHI BILIMINI CHUQUR TEKSHIRADIGAN test savollarini tuzish.
+
+            KURS: ${courseName || 'Umumiy'}
+            MAVZU/MATN: ${contextText.substring(0, 5000)}
             SAVOLLAR SONI: ${count}
+            QIYINCHILIK DARAJA: ${difficulty || 'medium'} (easy, medium, hard)
+            SINFI/DARAJA: ${gradeLevel || 'ixtiyoriy'}
             TIL: O'zbek tili
-            
-            TALABLAR:
-            1. Har bir savolning 4 ta varianti bo'lsin.
-            2. Variantlar bir-biriga mantiqan yaqin, lekin faqat bittasi to'g'ri bo'lsin (chalg'ituvchi variantlar ishlat).
-            3. Savollar faqat faktik emas, balki mantiqiy fikrlashga ham yo'naltirilgan bo'lsin.
-            4. FAQAT JSON formatda javob qaytar (array: [{"text": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "To'g'ri javob texti", "score": 5}]).
+
+            SAVOLLARGA QO'YILADIGAN TALABLAR:
+            1. Har bir savol 4 ta variantdan (A, B, C, D) iborat bo'lsin.
+            2. Variantlar bir-biriga mantiqan juda yaqin bo'lsin (o'quvchini chalg'itish uchun).
+            3. Savollar faqat yod olingan faktlar haqida emas, balki mantiqiy fikrlash, tahlil va amaliy qo'llashni tekshirsin.
+            4. Agar "QIYIN" daraja tanlangan bo'lsa, savollar ochiq-oydin bo'lmasin, chuqur bilim talab qilsin.
+            5. Agar faqat MAVZU berilgan bo'lsa (matn bo'lmasa), o'zingning keng bilim bazangdan foydalanib, eng dolzarb va darsliklarga mos savollarni tuz.
+            6. Savol matni va variantlar imlo xatolarisiz, tushunarli tilda yozilgan bo'lishi shart.
+
+            DIQQAT: FAQAT JSON FORMATDA JAVOB QAYTAR.
+            JSON FORMATI: 
+            {
+                "questions": [
+                    {
+                        "text": "Savol matni...",
+                        "options": ["Variant A", "Variant B", "Variant C", "Variant D"],
+                        "correctAnswer": "To'g'ri javob texti (Variantlardan biriga aynan mos bo'lishi shart)",
+                        "score": 5
+                    }
+                ]
+            }
         `;
 
         const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: "deepseek-chat",
             messages: [
-                { role: "system", content: "Sen faqat JSON qaytaradigan, professional test tuzuvchi yordamchisan." },
+                { role: "system", content: "Sen faqat JSON qaytaradigan, pedagogik talablarga javob beradigan professional test tuzuvchi yordamchisan." },
                 { role: "user", content: prompt }
             ],
             response_format: { type: 'json_object' }
@@ -363,6 +380,19 @@ app.post('/api/admin/create', async (req, res) => {
         const admin = new User({ firstName, lastName, phone, password, role: 'admin', groupCode: 'ADMIN' });
         await admin.save();
         res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/admin/activity', async (req, res) => {
+    try {
+        const activities = await Activity.find().sort({ timestamp: -1 }).limit(100);
+        res.json({ success: true, activities });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/admin/files', async (req, res) => {
+    try {
+        res.json({ success: true, files: [] });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
