@@ -2602,8 +2602,12 @@
             const gradeLevel = document.getElementById('aiGradeLevel').value;
             const file = aiFileInput.files[0];
 
-            if ((!topic && !file) || !groupCodeStr) {
-                showAlert('Iltimos, mavzu yozing yoki fayl yuklang, va guruh kodini kiriting', 'warning');
+            if (!topic && !file) {
+                showAlert('Iltimos, mavzu yozing yoki fayl yuklang', 'warning');
+                return;
+            }
+            if (!groupCodeStr) {
+                showAlert('Iltimos, guruh kodini kiriting', 'warning');
                 return;
             }
 

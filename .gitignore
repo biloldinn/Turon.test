@@ -4,3 +4,30 @@ npm-debug.log
 .DS_Store
 dist
 build
+.gradle
+.VirtualBox
+.android
+.antigravity
+.cursor
+.gemini
+.idlerc
+.javacpp
+.vscode
+AndroidStudioProjects
+AppData
+Contacts
+Desktop
+Documents
+Downloads
+Favorites
+Links
+Music
+Pictures
+Saved Games
+Searches
+Videos
+VirtualBox VMs
+*.lnk
+NTUSER.DAT*
+ntuser.dat*
+ntuser.ini

@@ -813,41 +813,77 @@
                 </div>
                 <div class="modal-body">
                     <div id="aiStep1">
-                        <div class="mb-4">
-                            <label class="form-label">Kurs nomi</label>
-                            <input type="text" class="form-control" id="aiCourseName"
-                                placeholder="Masalan: Frontend Development">
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Kurs/Fan nomi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-book"></i></span>
+                                    <input type="text" class="form-control" id="aiCourseName"
+                                        placeholder="Masalan: Ona tili, Matematika...">
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Guruh kodi(lari)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                    <input type="text" class="form-control" id="aiGroupCode" placeholder="232, 233...">
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Test mavzusi yoki matni</label>
-                            <textarea class="form-control" id="aiTestPrompt" rows="5"
-                                placeholder="Test mavzusini yozing yoki matnni shu yerga tashlang..."></textarea>
+
+                        <div class="mb-3">
+                            <label class="form-label">Test mavzusi yoki batafsil tushuntirish</label>
+                            <textarea class="form-control" id="aiTestPrompt" rows="4"
+                                placeholder="Mavzuni yozing (masalan: Ot so'z turkumi) yoki matnni shu yerga tashlang..."></textarea>
+                            <div class="form-text text-primary"><i class="fas fa-magic"></i> AI mavzu bo'yicha eng zo'r
+                                savollarni o'zi tuzib beradi.</div>
                         </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Qiyinchilik darajasi</label>
+                                <select class="form-select" id="aiDifficulty">
+                                    <option value="easy">Oson (Asosiy tushunchalar)</option>
+                                    <option value="medium" selected>O'rta (Mantiqiy savollar)</option>
+                                    <option value="hard">Qiyin (Chuqur tahliliy)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Sinf / Daraja</label>
+                                <input type="text" class="form-control" id="aiGradeLevel" placeholder="Masalan: 9-sinf">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Savollar soni</label>
+                                <input type="number" class="form-control" id="aiQuestionCount" value="10" min="5"
+                                    max="50">
+                            </div>
+                        </div>
+
+                        <div class="divider text-center mb-4">
+                            <span class="px-3 bg-white text-muted">YOKI FAYL YUKLANG</span>
+                        </div>
+
                         <div class="drop-zone mb-4" id="aiDropZone">
                             <i class="fas fa-file-pdf fa-3x mb-3 text-danger"></i>
                             <p>PDF yoki Word faylni tashlang yoki tanlang</p>
                             <input type="file" id="aiFileInput" hidden accept=".pdf,.doc,.docx">
                         </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Savollar soni</label>
-                                <input type="number" class="form-control" id="aiQuestionCount" value="10" min="5"
-                                    max="50">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Guruh kodi</label>
-                                <input type="text" class="form-control" id="aiGroupCode" placeholder="232">
-                            </div>
-                        </div>
-                        <button class="btn btn-ai btn-lg w-100" onclick="generateAITest()">
-                            <i class="fas fa-magic"></i> Testni generatsiya qilish
+
+                        <button class="btn btn-ai btn-lg w-100 shadow-sm" onclick="generateAITest()">
+                            <i class="fas fa-magic"></i> Mukammal Test Yaratish
                         </button>
                     </div>
                     <div id="aiStep2" style="display:none;">
                         <div class="text-center py-5">
-                            <div class="spinner-border text-ai mb-3" style="width: 3rem; height: 3rem;"></div>
-                            <h4>AI test yaratmoqda...</h4>
-                            <p class="text-muted">Bu bir necha soniya vaqt olishi mumkin</p>
+                            <div class="ai-pulse mb-3">
+                                <i class="fas fa-robot fa-5x text-ai"></i>
+                            </div>
+                            <h4 class="mt-3">AI Siz uchun eng zo'r testlarni tuzmoqda...</h4>
+                            <p class="text-muted">Bu jarayon 5-15 soniya vaqt olishi mumkin</p>
+                            <div class="progress mt-4 mx-auto" style="width: 70%; height: 6px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-ai"
+                                    style="width: 100%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2461,45 +2497,75 @@
             modal.show();
         }
 
+        // AI Drop Zone & File Input
+        const aiDropZone = document.getElementById('aiDropZone');
+        const aiFileInput = document.getElementById('aiFileInput');
+
+        if (aiDropZone) {
+            aiDropZone.onclick = () => aiFileInput.click();
+            aiDropZone.ondragover = (e) => { e.preventDefault(); aiDropZone.classList.add('active'); };
+            aiDropZone.ondragleave = () => aiDropZone.classList.remove('active');
+            aiDropZone.ondrop = (e) => {
+                e.preventDefault();
+                aiDropZone.classList.remove('active');
+                if (e.dataTransfer.files.length) {
+                    aiFileInput.files = e.dataTransfer.files;
+                    updateAIFiles();
+                }
+            };
+        }
+
+        if (aiFileInput) {
+            aiFileInput.onchange = updateAIFiles;
+        }
+
+        function updateAIFiles() {
+            const file = aiFileInput.files[0];
+            if (file) {
+                aiDropZone.innerHTML = `<i class="fas fa-file-pdf fa-3x mb-3 text-success"></i><p>${file.name}</p>`;
+            }
+        }
+
         async function generateAITest() {
-            const prompt = document.getElementById('aiTestPrompt').value;
+            const topic = document.getElementById('aiTestPrompt').value;
             const count = document.getElementById('aiQuestionCount').value;
             const courseName = document.getElementById('aiCourseName').value;
-            const groupCode = document.getElementById('aiGroupCode').value;
+            const groupCodeStr = document.getElementById('aiGroupCode').value;
+            const difficulty = document.getElementById('aiDifficulty').value;
+            const gradeLevel = document.getElementById('aiGradeLevel').value;
+            const file = aiFileInput.files[0];
 
-            if (!prompt || !groupCode) {
-                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
+            if (!topic && !file) {
+                showAlert('Iltimos, mavzu yozing yoki fayl yuklang', 'warning');
                 return;
             }
+            if (!groupCodeStr) {
+                showAlert('Iltimos, guruh kodini kiriting', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('topic', topic);
+            formData.append('count', count);
+            formData.append('difficulty', difficulty);
+            formData.append('gradeLevel', gradeLevel);
+            formData.append('courseName', courseName);
+            if (file) formData.append('file', file);
 
             document.getElementById('aiStep1').style.display = 'none';
             document.getElementById('aiStep2').style.display = 'block';
 
             try {
-                // Here we would normally call DeepSeek API or our backend to handle AI generation
-                // For now, let's simulate a call to the backend
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/generate-ai`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
-                    body: JSON.stringify({
-                        title: `AI Test: ${courseName}`,
-                        courseName,
-                        description: `AI tomonidan generatsiya qilingan test`,
-                        questions: [
-                            { text: "AI tomonidan yaratilgan namunaviy savol 1?", options: ["A", "B", "C", "D"], correctAnswer: "A", score: 5, createdByAI: true }
-                        ],
-                        timeLimit: 30,
-                        groupCode
-                    })
+                    body: formData
                 });
-
                 const data = await response.json();
                 if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('aiTestModal')).hide();
-                    showAdminTests();
-                    showAlert('AI Test muvaffaqiyatli yaratildi', 'success');
+                    currentAIQuestions = data.questions;
+                    showAIReview();
                 } else {
-                    showAlert('Xatolik: ' + data.error, 'danger');
+                    showAlert(data.error || 'Generatsiya xatosi', 'danger');
                     document.getElementById('aiStep1').style.display = 'block';
                     document.getElementById('aiStep2').style.display = 'none';
                 }
@@ -2508,6 +2574,109 @@
                 document.getElementById('aiStep1').style.display = 'block';
                 document.getElementById('aiStep2').style.display = 'none';
             }
+        }
+
+        let currentAIQuestions = [];
+
+        function showAIReview() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('aiTestModal'));
+            modal.hide();
+
+            showSection('adminSection');
+            const content = document.getElementById('adminContent');
+            const courseName = document.getElementById('aiCourseName').value || 'Umumiy';
+            const groupCodes = document.getElementById('aiGroupCode').value;
+
+            let html = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-robot text-ai"></i> AI Yaratgan Savollar</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary" onclick="showAdminTests()">Bekor qilish</button>
+                        <button class="btn btn-success" onclick="saveAITest()">
+                            <i class="fas fa-save"></i> Testni Saqlash
+                        </button>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2">
+                    <i class="fas fa-info-circle"></i> Savollarni saqlashdan oldin tekshirib chiqing va kerak bo'lsa tahrirlang.
+                </div>
+                <div id="aiReviewContainer">
+                    ${currentAIQuestions.map((q, i) => `
+                        <div class="card mb-4 shadow-sm ai-question-card" data-index="${i}">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Savol ${i + 1}</label>
+                                    <textarea class="form-control q-text" rows="2">${q.text}</textarea>
+                                </div>
+                                <div class="row">
+                                    ${q.options.map((opt, oi) => `
+                                        <div class="col-md-6 mb-2">
+                                            <div class="input-group">
+                                                <span class="input-group-text">${String.fromCharCode(65 + oi)}</span>
+                                                <input type="text" class="form-control q-opt" value="${opt}">
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="mt-2 text-success">
+                                    <i class="fas fa-check-circle"></i> To'g'ri javob: <strong>${q.correctAnswer}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="d-grid gap-2 mb-5">
+                    <button class="btn btn-success btn-lg" onclick="saveAITest()">
+                        <i class="fas fa-save"></i> Barcha savollarni tasdiqlash va saqlash
+                    </button>
+                </div>
+            `;
+            content.innerHTML = html;
+        }
+
+        async function saveAITest() {
+            const courseName = document.getElementById('aiCourseName').value || 'Umumiy';
+            const groupCodeStr = document.getElementById('aiGroupCode').value;
+            const count = document.getElementById('aiQuestionCount').value;
+
+            const questions = [];
+            document.querySelectorAll('#aiReviewContainer .ai-question-card').forEach(card => {
+                const text = card.querySelector('.q-text').value;
+                const options = Array.from(card.querySelectorAll('.q-opt')).map(i => i.value);
+                // Correct answer is still based on the text match from original
+                const index = card.dataset.index;
+                const originalQ = currentAIQuestions[index];
+
+                // Find which option matches the original correct answer text
+                // or if it was edited, we take the original correct answer mapping
+                // For simplicity, we'll keep the original correct answer text
+                questions.push({
+                    text,
+                    options,
+                    correctAnswer: originalQ.correctAnswer,
+                    score: 5
+                });
+            });
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+                    body: JSON.stringify({
+                        title: `${courseName} - AI Test`,
+                        courseName,
+                        questions,
+                        timeLimit: 30,
+                        groupCode: groupCodeStr
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('AI Test muvaffaqiyatli saqlandi', 'success');
+                    showAdminTests();
+                }
+            } catch (e) { showAlert('Saqlashda xatolik!', 'danger'); }
         }
 
         function showManualTestCreator() {
