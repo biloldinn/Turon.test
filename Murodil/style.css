@@ -1,0 +1,35 @@
+*{
+margin: 0%;
+padding: 0%;
+box-sizing: border-box;
+}
+.main{
+position: relative;
+width: 1200px;
+border: 5px solid black;
+margin: 20px auto;
+}
+.blok{
+position: absolute;
+z-index: 4;
+width: 200px;
+height: 200px;
+background-color: brown;
+margin: 20px;
+float: left;
+}
+.blok:nth-child(3){
+    background-color: yellow;
+}
+.blok:nth-child(4){
+position: absolute;
+z-index: 1;
+top: 300px;
+left: 100px;
+}
+.img{
+z-index: 1;
+position: absolute;
+width: 400px;
+
+}

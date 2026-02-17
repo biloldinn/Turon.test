@@ -1,0 +1,19 @@
+*{
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+.main{
+position: relative;
+width: 1200px;
+height: 600px;
+border: 2px solid black;
+margin: 20px auto;
+}
+.blok{
+position: absolute;
+z-index: 4;
+width: 600px;
+height: 200px ;
+background-color: ;
+}

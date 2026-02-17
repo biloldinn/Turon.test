@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURON O'QUV MARKAZI - AI Test Tizimi</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #166088;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --ai-color: #8a2be2;
+            --info: #17a2b8;
+            --dark: #343a40;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .admin-login-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            z-index: 1000;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .test-card {
+            transition: all 0.3s;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .test-header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 15px; }
+        .ai-test-header { background: linear-gradient(135deg, var(--ai-color), #6a11cb); color: white; padding: 15px; }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--danger);
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid var(--danger);
+            text-align: center;
+        }
+        
+        .admin-sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: #2c3e50;
+            color: white;
+            padding-top: 20px;
+        }
+        
+        .admin-content { margin-left: 250px; padding: 20px; background: #f8f9fa; min-height: 100vh; }
+        
+        .nav-link-admin {
+            display: block;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-link-admin:hover, .nav-link-admin.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .question-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .option-label {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .option-label.selected { background: #d4edda; border-color: var(--success); }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar { display: none; }
+            .admin-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <button class="admin-login-btn no-print" onclick="showAdminLoginModal()">
+        <i class="fas fa-lock"></i> Admin Panel
+    </button>
+    
+    <!-- Login Section -->
+    <div id="loginSection" class="section active">
+        <div class="container">
+            <div class="login-container">
+                <div class="text-center mb-4">
+                    <h2>Turon O'quv Markazi</h2>
+                    <p class="text-muted">AI Test Tizimi</p>
+                </div>
+                <div id="studentLoginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Telefon raqam</label>
+                        <input type="tel" class="form-control" id="studentPhone" placeholder="+998901234567">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parol</label>
+                        <input type="password" class="form-control" id="studentPassword">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="login()">Kirish</button>
+                    <p class="mt-3 text-center">Yangi o'quvchimisiz? <a href="#" onclick="showSection('registerSection')">Ro'yxatdan o'ting</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Register Section -->
+    <div id="registerSection" class="section">
+        <div class="container">
+            <div class="login-container">
+                <h3 class="text-center">Ro'yxatdan o'tish</h3>
+                <input type="text" class="form-control mb-2" id="regFirstName" placeholder="Ism">
+                <input type="text" class="form-control mb-2" id="regLastName" placeholder="Familiya">
+                <input type="tel" class="form-control mb-2" id="regPhone" placeholder="Telefon raqam">
+                <input type="text" class="form-control mb-2" id="regGroup" placeholder="Guruh kodi">
+                <input type="password" class="form-control mb-3" id="regPassword" placeholder="Parol">
+                <button class="btn btn-success w-100 mb-2" onclick="register()">Ro'yxatdan o'tish</button>
+                <button class="btn btn-link w-100" onclick="showSection('loginSection')">Kirishga qaytish</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student Section -->
+    <div id="studentSection" class="section">
+        <nav class="navbar navbar-light bg-white border-bottom p-3">
+            <div class="container">
+                <span id="studentInfo" class="fw-bold"></span>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadStudentTests()">Testlar</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="loadStudentResults()">Natijalar</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="logout()">Chiqish</button>
+                </div>
+            </div>
+        </nav>
+        <div class="container mt-4" id="studentContent"></div>
+    </div>
+    
+    <!-- Admin Section -->
+    <div id="adminSection" class="section">
+        <div class="admin-sidebar">
+            <h4 class="text-center">Turon Admin</h4>
+            <div class="nav flex-column mt-4">
+                <a href="#" class="nav-link-admin" onclick="loadAdminDashboard()">Dashboard</a>
+                <a href="#" class="nav-link-admin" onclick="showAITestCreator()">AI Test Yaratish</a>
+                <a href="#" class="nav-link-admin" onclick="showManualTestCreator()">Test Yaratish</a>
+                <a href="#" class="nav-link-admin" onclick="logout()">Chiqish</a>
+            </div>
+        </div>
+        <div class="admin-content" id="adminContent"></div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="adminLoginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Admin Kirish</h5></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-2" id="adminPhone" placeholder="Admin login" value="admin">
+                    <input type="password" class="form-control" id="adminPassword" placeholder="Parol" value="admin123">
+                    <button class="btn btn-danger w-100 mt-3" onclick="login(true)">Kirish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+        let socket = null;
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function login(isAdmin = false) {
+            const phone = document.getElementById(isAdmin ? 'adminPhone' : 'studentPhone').value;
+            const password = document.getElementById(isAdmin ? 'adminPassword' : 'studentPassword').value;
+            
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone, password})
+                });
+                const data = await res.json();
+                if(data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    if(isAdmin) bootstrap.Modal.getInstance(document.getElementById('adminLoginModal')).hide();
+                    initApp();
+                } else alert(data.error);
+            } catch(e) { alert('Tizimga kirishda xatolik'); }
+        }
+
+        async function register() {
+            const firstName = document.getElementById('regFirstName').value;
+            const lastName = document.getElementById('regLastName').value;
+            const phone = document.getElementById('regPhone').value;
+            const groupCode = document.getElementById('regGroup').value;
+            const password = document.getElementById('regPassword').value;
+
+            const res = await fetch(`${API_BASE}/register`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({firstName, lastName, phone, groupCode, password})
+            });
+            const data = await res.json();
+            if(data.success) { alert('Muvaffaqiyatli ro\'yxatdan o\'tdingiz'); showSection('loginSection'); }
+            else alert(data.error);
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            location.reload();
+        }
+
+        function initApp() {
+            if(!currentUser) return showSection('loginSection');
+            if(currentUser.role === 'admin') {
+                showSection('adminSection');
+                loadAdminDashboard();
+            } else {
+                showSection('studentSection');
+                document.getElementById('studentInfo').innerText = `${currentUser.firstName} ${currentUser.lastName} (${currentUser.groupCode})`;
+                loadStudentTests();
+            }
+            connectSocket();
+        }
+
+        function connectSocket() {
+            socket = io('/', { query: { userId: currentUser.id, userName: currentUser.firstName, role: currentUser.role } });
+        }
+
+        async function loadStudentTests() {
+            const res = await fetch(`${API_BASE}/tests/student/${currentUser.groupCode}`, {
+                headers: {'user-id': currentUser.id}
+            });
+            const data = await res.json();
+            const container = document.getElementById('studentContent');
+            container.innerHTML = '<h3>Mavjud Testlar</h3><div class="row" id="testList"></div>';
+            data.tests.forEach(test => {
+                document.getElementById('testList').innerHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card p-3">
+                            <h5>${test.title}</h5>
+                            <p>${test.timeLimit} daqiqa | ${test.questions.length} savol</p>
+                            ${test.isTaken ? '<span class="text-success">Topshirilgan</span>' : `<button class="btn btn-primary" onclick="startTest('${test._id}')">Boshlash</button>`}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function startTest(id) {
+            const res = await fetch(`${API_BASE}/tests/take/${id}`);
+            const data = await res.json();
+            const test = data.test;
+            const container = document.getElementById('studentContent');
+            container.innerHTML = `<h3>${test.title}</h3><div id="questionsContainer"></div><button class="btn btn-success mt-3" onclick="submitTest('${id}')">Tugatish</button>`;
+            test.questions.forEach((q, i) => {
+                let optionsHtml = q.options.map(opt => `
+                    <label class="option-label d-block">
+                        <input type="radio" name="q${i}" value="${opt}"> ${opt}
+                    </label>
+                `).join('');
+                document.getElementById('questionsContainer').innerHTML += `
+                    <div class="question-box mt-3">
+                        <p><strong>${i+1}. ${q.text}</strong></p>
+                        ${optionsHtml}
+                    </div>
+                `;
+            });
+            socket.emit('test_started', { studentId: currentUser.id, testTitle: test.title });
+        }
+
+        async function submitTest(testId) {
+            const answers = [];
+            const questions = document.querySelectorAll('.question-box');
+            questions.forEach((q, i) => {
+                const selected = q.querySelector(`input[name="q${i}"]:checked`);
+                answers.push(selected ? selected.value : '');
+            });
+
+            const res = await fetch(`${API_BASE}/tests/submit`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'user-id': currentUser.id},
+                body: JSON.stringify({testId, answers, timeTaken: 0})
+            });
+            const data = await res.json();
+            alert(`Sizning natijangiz: ${data.percentage}%`);
+            loadStudentTests();
+        }
+
+        async function loadAdminDashboard() {
+            const res = await fetch(`${API_BASE}/admin/dashboard`);
+            const data = await res.json();
+            document.getElementById('adminContent').innerHTML = `
+                <h3>Dashboard</h3>
+                <div class="row">
+                    <div class="col-md-4"><div class="card p-3 bg-primary text-white"><h5>O'quvchilar: ${data.stats.students}</h5></div></div>
+                    <div class="col-md-4"><div class="card p-3 bg-success text-white"><h5>Testlar: ${data.stats.tests}</h5></div></div>
+                    <div class="col-md-4"><div class="card p-3 bg-info text-white"><h5>Natijalar: ${data.stats.results}</h5></div></div>
+                </div>
+            `;
+        }
+
+        function showAITestCreator() {
+            document.getElementById('adminContent').innerHTML = `
+                <h3>AI Test Yaratish</h3>
+                <input type="text" id="aiTopic" class="form-control mb-2" placeholder="Mavzu (masalan: JavaScript)">
+                <input type="number" id="aiCount" class="form-control mb-2" value="5" placeholder="Savollar soni">
+                <button class="btn btn-ai text-white" style="background: var(--ai-color)" onclick="generateAITest()">Generatsiya</button>
+                <div id="aiPreview" class="mt-4"></div>
+            `;
+        }
+
+        async function generateAITest() {
+            const topic = document.getElementById('aiTopic').value;
+            const count = document.getElementById('aiCount').value;
+            const res = await fetch(`${API_BASE}/admin/tests/generate-ai`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic, count, difficulty: 'medium'})
+            });
+            const data = await res.json();
+            const preview = document.getElementById('aiPreview');
+            preview.innerHTML = '<h5>Savollar tayyor! Saqlash uchun test ma\'lumotlarini kiriting:</h5>';
+            preview.innerHTML += '<input type="text" id="testTitle" class="form-control mb-2" placeholder="Test nomi">';
+            preview.innerHTML += '<input type="text" id="testGroup" class="form-control mb-2" placeholder="Guruh kodi">';
+            preview.innerHTML += `<button class="btn btn-success" onclick='saveAITest(${JSON.stringify(data.questions).replace(/'/g, "&apos;")})'>Saqlash</button>`;
+        }
+
+        async function saveAITest(questions) {
+            const title = document.getElementById('testTitle').value;
+            const groupCode = document.getElementById('testGroup').value;
+            const res = await fetch(`${API_BASE}/admin/tests/create`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title, groupCode, questions, timeLimit: 30})
+            });
+            const data = await res.json();
+            if(data.success) { alert('Test saqlandi'); loadAdminDashboard(); }
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>

@@ -189,6 +189,14 @@ app.get('/api/tests/take/:testId', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+app.get('/api/results/:id', async (req, res) => {
+    try {
+        const result = await Result.findById(req.params.id).populate('userId').populate('testId');
+        if (!result) return res.status(404).json({ success: false, error: 'Natija topilmadi' });
+        res.json({ success: true, result });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.post('/api/tests/submit', async (req, res) => {
     try {
         const { testId, answers, timeTaken } = req.body;
@@ -253,10 +261,28 @@ app.post('/api/admin/tests/create', async (req, res) => {
 app.post('/api/admin/tests/update/:id', async (req, res) => {
     try {
         const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
-        const totalScore = questions.reduce((sum, q) => sum + (q.score || 5), 0);
-        const groups = Array.isArray(groupCodes) ? groupCodes : [groupCodes];
-        await Test.findByIdAndUpdate(req.params.id, { title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups });
+        const totalScore = questions ? questions.reduce((sum, q) => sum + (q.score || 5), 0) : undefined;
+
+        let groups = [];
+        if (groupCodes) {
+            groups = Array.isArray(groupCodes) ? groupCodes : groupCodes.split(',').map(g => g.trim()).filter(g => g);
+        }
+
+        const updateData = { title, courseName, description, questions, timeLimit, totalScore };
+        if (groupCodes) updateData.groupCodes = groups;
+
+        await Test.findByIdAndUpdate(req.params.id, updateData);
         res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// New endpoint specifically for group management
+app.post('/api/admin/tests/:id/groups', async (req, res) => {
+    try {
+        const { groupCodes } = req.body;
+        const groups = Array.isArray(groupCodes) ? groupCodes : groupCodes.split(',').map(g => g.trim()).filter(g => g);
+        await Test.findByIdAndUpdate(req.params.id, { groupCodes: groups });
+        res.json({ success: true, groups });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
@@ -272,7 +298,7 @@ app.delete('/api/admin/tests/delete/:id', async (req, res) => {
 app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res) => {
     try {
         const { topic, count, difficulty, gradeLevel, courseName } = req.body;
-        const API_KEY = process.env.AI_API_KEY;
+        const API_KEY = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY;
         let contextText = topic || "";
 
         // If file is uploaded, extract text
@@ -405,17 +431,10 @@ app.delete('/api/admin/delete/:id', async (req, res) => {
 
 app.delete('/api/admin/students/delete/:id', async (req, res) => {
     try {
-        await User.findByIdAndDelete(req.params.id);
-        await Result.deleteMany({ userId: req.params.id });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
-});
-
-app.delete('/api/admin/students/delete/:id', async (req, res) => {
-    try {
-        await User.findByIdAndDelete(req.params.id);
-        // Delete student's results too
-        await Result.deleteMany({ userId: req.params.id });
+        const userId = req.params.id;
+        await User.findByIdAndDelete(userId);
+        await Result.deleteMany({ userId: userId });
+        await Activity.deleteMany({ userId: userId });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });

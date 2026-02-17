@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TURON O'QUV MARKAZI - AI Test Tizimi</title>
+    <title>Turon O'QUV MARKAZI - AI Test Tizimi</title>
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -552,8 +552,8 @@
         <div class="container">
             <div class="login-container">
                 <div class="text-center mb-4">
-                    <img src="logo.jpg" alt="TURON Logo" style="height: 100px;" class="mb-3">
-                    <h2>TURON O'quv markazi</h2>
+                    <img src="logo.jpg" alt="Turon Logo" style="height: 100px;" class="mb-3">
+                    <h2>Turon O'quv markazi</h2>
                     <p class="text-muted">AI Test Tizimiga xush kelibsiz</p>
                 </div>
 
@@ -650,7 +650,7 @@
                     <div class="d-flex align-items-center">
                         <img src="logo.jpg" alt="Logo" style="height: 40px;" class="me-2">
                         <div>
-                            <h4 class="mb-0">TURON O'quv markazi</h4>
+                            <h4 class="mb-0">Turon O'quv markazi</h4>
                             <small id="studentInfo" class="text-muted"></small>
                         </div>
                     </div>
@@ -660,9 +660,6 @@
                         </button>
                         <button class="btn btn-outline-success me-2" onclick="showStudentResults()">
                             <i class="fas fa-chart-bar"></i> Natijalarim
-                        </button>
-                        <button class="btn btn-outline-info me-2" onclick="showLeaderboard()">
-                            <i class="fas fa-trophy"></i> Leaderboard
                         </button>
                         <button class="btn btn-outline-danger" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i> Chiqish
@@ -684,7 +681,7 @@
         <div class="admin-sidebar no-print">
             <div class="text-center mb-4 px-3">
                 <img src="logo.jpg" alt="Logo" style="height: 60px;" class="mb-2">
-                <h4 class="mb-1">TURON Admin Panel</h4>
+                <h4 class="mb-1">Turon Admin Panel</h4>
                 <small class="text-white-50">AI Test Tizimi</small>
                 <div class="mt-3">
                     <span class="badge bg-success" id="onlineCount">Online: 0</span>
@@ -751,7 +748,7 @@
 
             <div class="mt-auto px-3 py-3">
                 <small class="text-white-50 d-block">Version 2.0</small>
-                <small class="text-white-50 d-block">© 2024 TURON O'quv markazi</small>
+                <small class="text-white-50 d-block">© 2024 Turon O'quv markazi</small>
             </div>
         </div>
 
@@ -1683,7 +1680,7 @@
                     <div class="options">
                         ${question.options.map((option, optIndex) => `
                             <label class="option-label ${currentTest.answers[index] === option ? 'selected' : ''}" 
-                                onclick="selectOption(this, ${index}, '${option}')">
+                                onclick="selectOption(this, ${index}, ${optIndex})">
                                 <span class="me-2">${String.fromCharCode(65 + optIndex)})</span>
                                 ${option}
                             </label>
@@ -1720,23 +1717,30 @@
             }
         }
 
-        function selectOption(element, questionIndex, optionValue) {
-            currentTest.answers[questionIndex] = optionValue;
+        function selectOption(element, questionIndex, optIndex) {
+            try {
+                if (!currentTest || !currentTest.questions[questionIndex]) return;
 
-            // UI Update
-            const labels = element.parentElement.querySelectorAll('.option-label');
-            labels.forEach(l => l.classList.remove('selected'));
-            element.classList.add('selected');
+                const optionValue = currentTest.questions[questionIndex].options[optIndex];
+                currentTest.answers[questionIndex] = optionValue;
 
-            // Send screen update
-            if (socket) {
-                socket.emit('screen_update', {
-                    studentId: currentUser.id,
-                    action: 'answer_selected',
-                    questionIndex: questionIndex,
-                    selectedOption: optionValue,
-                    testId: currentTest._id
-                });
+                // UI Update
+                const labels = element.parentElement.querySelectorAll('.option-label');
+                labels.forEach(l => l.classList.remove('selected'));
+                element.classList.add('selected');
+
+                // Send screen update
+                if (socket) {
+                    socket.emit('screen_update', {
+                        studentId: currentUser.id,
+                        action: 'answer_selected',
+                        questionIndex: questionIndex,
+                        selectedOption: optionValue,
+                        testId: currentTest._id
+                    });
+                }
+            } catch (e) {
+                console.error('selectOption error:', e);
             }
         }
 
@@ -2421,53 +2425,6 @@
         // ============================================
         // ADMIN MANAGEMENT
         // ============================================
-        async function showAdminManagement() {
-            showSection('adminSection');
-            currentPage = 'adminManagement';
-            const content = document.getElementById('adminContent');
-            showLoading('adminContent');
-
-            try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/list`);
-                const data = await response.json();
-
-                let html = `
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3><i class="fas fa-user-shield"></i> Adminlar boshqaruvi</h3>
-                        <button class="btn btn-primary" onclick="showAddAdminModal()">
-                            <i class="fas fa-plus"></i> Yangi Admin
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover bg-white rounded shadow-sm">
-                            <thead>
-                                <tr>
-                                    <th>Ism Familiya</th>
-                                    <th>Login (Telefon)</th>
-                                    <th>Sana</th>
-                                    <th>Amallar</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.admins.map(admin => `
-                                    <tr>
-                                        <td>${admin.firstName} ${admin.lastName}</td>
-                                        <td>${admin.phone}</td>
-                                        <td>${formatDate(admin.createdAt)}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAdmin('${admin._id}')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
 
         // ============================================
         // EXCEL EXPORT
@@ -2492,50 +2449,7 @@
             exportToExcel(exportData, "Oquvchilar_Royhati");
         }
 
-        // ============================================
-        // LEADERBOARD
-        // ============================================
-        async function showLeaderboard() {
-            showSection('studentSection');
-            const content = document.getElementById('studentContent');
-            showLoading('studentContent');
-
-            try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
-                const data = await response.json();
-
-                // Sort by score and filter top performers
-                const topResults = data.results
-                    .sort((a, b) => b.percentage - a.percentage)
-                    .slice(0, 10);
-
-                let html = `
-                    <div class="text-center mb-5">
-                        <h2 class="display-4 text-primary"><i class="fas fa-crown text-warning"></i> PesHQadamlar</h2>
-                        <p class="text-muted">Eng yuqori natija ko'rsatgan 10 ta o'quvchi</p>
-                    </div>
-                    <div class="row justify-content-center">
-                        <div class="col-md-8">
-                            <div class="list-group shadow-sm">
-                                ${topResults.map((r, i) => `
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div class="d-flex align-items-center">
-                                            <h4 class="me-3 mb-0 text-muted">#${i + 1}</h4>
-                                            <div>
-                                                <h5 class="mb-0">${r.userId?.firstName} ${r.userId?.lastName}</h5>
-                                                <small class="text-muted">${r.testId?.title}</small>
-                                            </div>
-                                        </div>
-                                        <span class="badge bg-success rounded-pill p-2 px-3">${r.percentage}%</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
+        // Leaderboard removed for perfection
 
         // --- Additional Implementation ---
 
@@ -2832,19 +2746,25 @@
         }
 
         async function exportResults() {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
-            const data = await response.json();
-            const exportData = data.results.map(r => ({
-                'O\'quvchi': `${r.userId?.firstName} ${r.userId?.lastName}`,
-                'Guruh': r.userId?.groupCode,
-                'Test': r.testId?.title,
-                'Ball': r.score,
-                'Jami': r.totalScore,
-                'Foiz': r.percentage + '%',
-                'Natija': r.passed ? "O'tdi" : "O'tmadi",
-                'Sana': formatDate(r.submittedAt)
-            }));
-            exportToExcel(exportData, "Test_Natijalari");
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
+                const data = await response.json();
+                const exportData = data.results.map(r => {
+                    const baho = getBaho(r.percentage);
+                    return {
+                        'O\'quvchi': `${r.userId?.firstName} ${r.userId?.lastName}`,
+                        'Guruh': r.userId?.groupCode,
+                        'Test': r.testId?.title,
+                        'Ball': r.score,
+                        'Jami': r.totalScore,
+                        'Foiz': r.percentage + '%',
+                        'Baho': baho.grade + ' (' + baho.text + ')',
+                        'Natija': r.passed ? "O'tdi" : "O'tmadi",
+                        'Sana': formatDate(r.submittedAt)
+                    }
+                });
+                exportToExcel(exportData, "Test_Natijalari");
+            } catch (e) { showAlert('Excel yaratishda xatolik', 'danger'); }
         }
 
         // --- Enhancing existing functions to include export buttons ---
@@ -2869,33 +2789,36 @@
                 let html = `
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3><i class="fas fa-users"></i> O'quvchilar</h3>
-                        <button class="btn btn-success" onclick="exportStudents()">
-                            <i class="fas fa-file-excel"></i> Excelga export
-                        </button>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-primary align-self-center py-2 px-3">Jami: ${data.students.length} ta</span>
+                            <button class="btn btn-success" onclick="exportStudents()">
+                                <i class="fas fa-file-excel"></i> Excelga export
+                            </button>
+                        </div>
                     </div>
                 `;
 
                 Object.keys(groups).sort().forEach(groupCode => {
                     html += `
-                        <div class="card mb-4 shadow-sm">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="fas fa-users"></i> Guruh: ${groupCode}</h5>
-                                <span class="badge bg-primary">${groups[groupCode].length} ta o'quvchi</span>
+                        <div class="card mb-4 shadow-sm border-0">
+                            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0 text-primary"><i class="fas fa-users"></i> Guruh: ${groupCode}</h5>
+                                <span class="badge bg-info">${groups[groupCode].length} o'quvchi</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
-                                    <thead>
-                                        <tr><th>Ism</th><th>Telefon</th><th>Sana</th><th>Amallar</th></tr>
+                                    <thead class="bg-light">
+                                        <tr><th>F.I.SH</th><th>Telefon</th><th>Ro'yxatdan o'tgan</th><th class="text-end">Amallar</th></tr>
                                     </thead>
                                     <tbody>
                                         ${groups[groupCode].map(s => `
                                             <tr>
-                                                <td>${s.firstName} ${s.lastName}</td>
+                                                <td><strong>${s.firstName} ${s.lastName}</strong></td>
                                                 <td>${s.phone}</td>
                                                 <td>${formatDate(s.createdAt)}</td>
-                                                <td>
+                                                <td class="text-end">
                                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
-                                                        <i class="fas fa-trash"></i>
+                                                        <i class="fas fa-trash"></i> O'chirish
                                                     </button>
                                                 </td>
                                             </tr>
@@ -2906,20 +2829,25 @@
                         </div>
                     `;
                 });
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
+                content.innerHTML = html || '<div class="alert alert-info">O\'quvchilar mavjud emas</div>';
+            } catch (e) {
+                console.error(e);
+                showAlert('O\'quvchilarni yuklashda xatolik!', 'danger');
+            }
         }
 
         async function deleteStudent(id) {
-            if (!confirm('Ushbu o\'quvchini o\'chirishni istaysizmi?')) return;
+            if (!confirm('Haqiqatdan ham ushbu o\'quvchini o\'chiromqchimisiz? Natijalar ham o\'chib ketadi.')) return;
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students/delete/${id}`, { method: 'DELETE' });
                 const data = await response.json();
                 if (data.success) {
+                    showAlert('O\'quvchi muvaffaqiyatli o\'chirildi', 'success');
                     showAdminStudents();
-                    showAlert('O\'quvchi o\'chirildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
                 }
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
+            } catch (e) { showAlert('Server bilan ulanishda xatolik!', 'danger'); }
         }
 
         async function showAdminResults() {
@@ -2942,18 +2870,23 @@
                     <div class="table-responsive">
                         <table class="table table-hover bg-white rounded shadow-sm">
                             <thead>
-                                <tr><th>O'quvchi</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Sana</th></tr>
+                                <tr><th>O'quvchi</th><th>Guruh</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Baho</th><th>Sana</th></tr>
                             </thead>
                             <tbody>
-                                ${data.results.map(r => `
+                                ${data.results.map(r => {
+                    const baho = getBaho(r.percentage);
+                    return `
                                     <tr>
-                                        <td>${r.userId?.firstName} ${r.userId?.lastName}</td>
-                                        <td>${r.testId?.title}</td>
+                                        <td>${r.userId ? `${r.userId.firstName} ${r.userId.lastName}` : 'O\'chirilgan user'}</td>
+                                        <td>${r.userId ? r.userId.groupCode : '-'}</td>
+                                        <td>${r.testId ? r.testId.title : 'O\'chirilgan test'}</td>
                                         <td>${r.score}/${r.totalScore}</td>
                                         <td>${r.percentage}%</td>
+                                        <td><span class="badge bg-light ${baho.color}">${baho.grade}</span></td>
                                         <td>${formatDate(r.submittedAt)}</td>
                                     </tr>
-                                `).join('')}
+                                `;
+                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -3176,96 +3109,9 @@
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
 
-        async function showAdminStudents() {
-            showSection('adminSection');
-            currentPage = 'students';
-            const content = document.getElementById('adminContent');
-            showLoading('adminContent');
-
-            try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
-                const data = await response.json();
-
-                let html = `
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3><i class="fas fa-users"></i> O'quvchilar</h3>
-                        <div class="badge bg-primary">Jami: ${data.students.length} ta</div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table bg-white rounded shadow-sm">
-                            <thead>
-                                <tr><th>F.I.SH</th><th>Telefon</th><th>Guruh</th><th>Ro'yxatdan o'tgan</th><th>Amallar</th></tr>
-                            </thead>
-                            <tbody>
-                                ${data.students.map(s => `
-                                    <tr>
-                                        <td>${s.firstName} ${s.lastName}</td>
-                                        <td>${s.phone}</td>
-                                        <td><span class="badge bg-secondary">${s.groupCode}</span></td>
-                                        <td>${formatDate(s.createdAt)}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
-
-        async function showAdminResults() {
-            showSection('adminSection');
-            currentPage = 'results';
-            const content = document.getElementById('adminContent');
-            showLoading('adminContent');
-
-            try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/results/all`);
-                const data = await response.json();
-
-                let html = `
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3><i class="fas fa-chart-bar"></i> Barcha Natijalar</h3>
-                        <button class="btn btn-success" onclick="exportResults()">
-                            <i class="fas fa-file-excel"></i> Excelga Yuklash
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table bg-white rounded shadow-sm">
-                            <thead>
-                                <tr><th>O'quvchi</th><th>Guruh</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Baho</th><th>Sana</th></tr>
-                            </thead>
-                            <tbody>
-                                ${data.results.map(r => {
-                    const baho = getBaho(r.percentage);
-                    return `
-                                        <tr>
-                                            <td>${r.userId ? `${r.userId.firstName} ${r.userId.lastName}` : 'O\'chirilgan user'}</td>
-                                            <td>${r.userId ? r.userId.groupCode : '-'}</td>
-                                            <td>${r.testId ? r.testId.title : 'O\'chirilgan test'}</td>
-                                            <td>${r.score}/${r.totalScore}</td>
-                                            <td>${r.percentage}%</td>
-                                            <td><span class="badge bg-light ${baho.color}">${baho.grade}</span></td>
-                                            <td>${formatDate(r.submittedAt)}</td>
-                                        </tr>
-                                    `;
-                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
-
         async function showAdminManagement() {
             showSection('adminSection');
-            currentPage = 'admins';
+            currentPage = 'adminManagement';
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
 
@@ -3283,10 +3129,10 @@
                     <div class="row">
                         ${data.admins.map(admin => `
                             <div class="col-md-4 mb-3">
-                                <div class="card shadow-sm">
+                                <div class="card shadow-sm border-0">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
-                                            <div class="bg-danger text-white rounded-circle p-3 me-3">
+                                            <div class="bg-primary text-white rounded-circle p-3 me-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
                                                 <i class="fas fa-user-shield fa-2x"></i>
                                             </div>
                                             <div>
@@ -3306,7 +3152,7 @@
                     </div>
                 `;
                 content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
+            } catch (e) { showAlert('Adminlarni yuklashda xatolik!', 'danger'); }
         }
 
         function getActivityText(activity) {
@@ -3316,23 +3162,33 @@
                 'test_completed': 'Testni yakunladi',
                 'registration': 'Ro\'yxatdan o\'tdi',
                 'admin_login': 'Admin panelga kirdi',
-                'cheat_warning': 'Anti-cheat ogohlantirish'
+                'cheat_warning': 'Anti-cheat ogohlantirish',
+                'test_submitted': 'Test topshirdi'
             };
             return texts[activity] || activity;
         }
 
-        async function deleteStudent(id) {
-            if (!confirm('Haqiqatdan ham ushbu o\'quvchini o\'chirmoqchimisiz?')) return;
-            try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/admin/students/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success) {
-                    showAlert('O\'quvchi o\'chirildi', 'success');
-                    showAdminStudents();
-                }
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
+        // Multi-group management
+        function manageTestGroups(id, currentGroups) {
+            const newGroups = prompt("Guruh kodlarini kiriting (vergul bilan ajrating):", currentGroups);
+            if (newGroups === null) return;
 
+            fetch(`${CONFIG.API_BASE_URL}/admin/tests/${id}/groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupCodes: newGroups })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Guruhlar yangilandi', 'success');
+                        showAdminTests();
+                    } else {
+                        showAlert('Xatolik: ' + data.error, 'danger');
+                    }
+                })
+                .catch(e => showAlert('Server bilan ulanishda xatolik', 'danger'));
+        }
     </script>
 </body>
 
