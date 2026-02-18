@@ -538,6 +538,49 @@
                 opacity: 1;
             }
         }
+
+        /* Skip Navigation */
+        .skip-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .skip-item {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .skip-item.answered {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .skip-item.skipped {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .skip-item.active {
+            border: 2px solid var(--primary);
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -596,9 +639,6 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <input type="text" class="form-control mb-3" id="regFirstName" placeholder="Ism">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control mb-3" id="regLastName" placeholder="Familiya">
                     </div>
                 </div>
 
@@ -1262,14 +1302,12 @@
             const confirmPassword = document.getElementById('regConfirmPassword').value;
 
             // Validation
-            if (!firstName || !lastName || !phone || !groupCode || !password || !confirmPassword) {
-                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
-                return;
+            if (!firstName || !lastName || !phone || !groupCode || !password) {
+                return showAlert('Barcha maydonlarni to\'ldiring', 'warning');
             }
 
             if (password !== confirmPassword) {
-                showAlert('Parollar mos kelmadi', 'danger');
-                return;
+                return showAlert('Parollar mos kelmadi', 'warning');
             }
 
             if (password.length < 6) {
@@ -1619,9 +1657,16 @@
                         </div>
                     </div>
                     
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        Testda ${currentTest.questions.length} ta savol bor. Har bir savolga javob bering.
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-info-circle"></i> 
+                            Testda ${currentTest.questions.length} ta savol bor.
+                        </div>
+                        <div id="answeredStats" class="badge bg-primary">Javob berildi: 0/${currentTest.questions.length}</div>
+                    </div>
+
+                    <div id="skipNavContainer" class="skip-nav">
+                        <!-- Questions navigation populated here -->
                     </div>
                     
                     <div id="testQuestionsContainer">
@@ -1674,6 +1719,9 @@
                 // Start timer
                 startTimer();
 
+                // Update Skip Nav
+                updateSkipNav();
+
                 // Anti-Cheat Initialization
                 initAntiCheat();
 
@@ -1705,6 +1753,13 @@
                 currentTest.answers = {};
             }
             currentTest.answers[questionIndex] = optionValue;
+
+            // Remove from skipped if it was there
+            if (currentTest.skipped) {
+                currentTest.skipped.delete(questionIndex);
+            }
+
+            updateSkipNav();
 
             // Send screen update for mirroring
             if (socket) {
@@ -1748,14 +1803,14 @@
 
         function skipQuestion(index) {
             const box = document.getElementById(`q-box-${index}`);
-            box.style.opacity = '0.5';
             box.style.borderLeft = '4px solid var(--warning)';
 
             if (!currentTest.skipped) currentTest.skipped = new Set();
             currentTest.skipped.add(index);
 
-            // Highlight skip status
-            showAlert(`${index + 1}-savol o'tkazib yuborildi. Oxirida yechishingiz mumkin.`, 'warning');
+            updateSkipNav();
+
+            showAlert(`${index + 1}-savol o'tkazib yuborildi.`, 'warning');
 
             // Scroll to next question if exists
             const nextBox = document.getElementById(`q-box-${index + 1}`);
@@ -1764,12 +1819,50 @@
             }
         }
 
+        function updateSkipNav() {
+            const container = document.getElementById('skipNavContainer');
+            if (!container) return;
+
+            const total = currentTest.questions.length;
+            const answeredCount = currentTest.answers ? Object.keys(currentTest.answers).length : 0;
+            document.getElementById('answeredStats').textContent = `Javob berildi: ${answeredCount}/${total}`;
+
+            let html = '';
+            for (let i = 0; i < total; i++) {
+                const isAnswered = currentTest.answers && currentTest.answers[i];
+                const isSkipped = currentTest.skipped && currentTest.skipped.has(i);
+
+                let className = 'skip-item';
+                if (isAnswered) className += ' answered';
+                else if (isSkipped) className += ' skipped';
+
+                html += `<div class="${className}" onclick="scrollToQuestion(${i})">${i + 1}</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function scrollToQuestion(index) {
+            document.getElementById(`q-box-${index}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight it temporarily
+            const box = document.getElementById(`q-box-${index}`);
+            const originalBorder = box.style.borderLeft;
+            box.style.borderLeft = '4px solid var(--primary)';
+            setTimeout(() => { box.style.borderLeft = originalBorder; }, 1000);
+        }
+
         async function submitTest() {
             clearInterval(testTimer);
 
             // Check if all questions answered
-            const answeredCount = currentTest.answers ? Object.keys(currentTest.answers).length : 0;
             const totalQuestions = currentTest.questions.length;
+            let answeredCount = 0;
+            if (currentTest.answers) {
+                for (let i = 0; i < totalQuestions; i++) {
+                    if (currentTest.answers[i] !== undefined && currentTest.answers[i] !== null && currentTest.answers[i] !== '') {
+                        answeredCount++;
+                    }
+                }
+            }
             const skippedCount = currentTest.skipped ? currentTest.skipped.size : 0;
 
             if (answeredCount < totalQuestions) {
@@ -1863,10 +1956,23 @@
                     <div class="col-md-10 col-lg-8">
                         <div class="result-card animate__animated animate__zoomIn">
                             ${result.percentage >= 90 ? `<h2><i class="fas fa-trophy text-warning"></i> Tabriklaymiz!</h2>` : `<h2>Test yakunlandi</h2>`}
-                            <p class="mb-4">${result.percentage >= 90 ? 'Siz a\'lo natija ko\'rsatdingiz' : 'Test natijangiz bilan tanishing'}</p>
+                            <p class="mb-2">${result.percentage >= 50 ? 'Tabriklaymiz! Siz muvaffaqiyatli o\'tdingiz.' : 'Afsuski, yetarli ball to\'play olmadingiz.'}</p>
                             
                             <div class="score-circle ${result.passed ? 'bg-success' : 'bg-danger'}">
                                 ${result.percentage}%
+                            </div>
+
+                            <div class="row mt-4 mb-4">
+                                <div class="col-6">
+                                    <div class="bg-white text-success p-2 rounded">
+                                        <i class="fas fa-check-circle"></i> To'g'ri: ${result.correctCount}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-white text-danger p-2 rounded">
+                                        <i class="fas fa-times-circle"></i> Noto'g'ri: ${result.incorrectCount}
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="baho-box mt-3 mb-4">
@@ -2128,10 +2234,8 @@
                                             <td>${index + 1}</td>
                                             <td>${answer.question || 'Noma\'lum'}</td>
                                             <td>
-                                                <span class="${answer.isCorrect ? 'text-success' : 'text-danger'}">
-                                                    ${answer.selected || 'Javob berilmagan'}
-                                                    ${answer.isCorrect ? ' ✓' : ' ✗'}
-                                                </span>
+                                                ${answer.selected || 'Javob berilmagan'}
+                                                ${currentUser.role === 'admin' ? (answer.isCorrect ? ' <span class="text-success">✓</span>' : ' <span class="text-danger">✗</span>') : ''}
                                             </td>
                                             ${currentUser.role === 'admin' ? `<td>${answer.correct}</td>` : ''}
                                             <td>${answer.score}</td>
@@ -2496,47 +2600,7 @@
         // ============================================
         // LEADERBOARD
         // ============================================
-        async function showLeaderboard() {
-            showSection('studentSection');
-            const content = document.getElementById('studentContent');
-            showLoading('studentContent');
-
-            try {
-                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
-                const data = await response.json();
-
-                // Sort by score and filter top performers
-                const topResults = data.results
-                    .sort((a, b) => b.percentage - a.percentage)
-                    .slice(0, 10);
-
-                let html = `
-                    <div class="text-center mb-5">
-                        <h2 class="display-4 text-primary"><i class="fas fa-crown text-warning"></i> PesHQadamlar</h2>
-                        <p class="text-muted">Eng yuqori natija ko'rsatgan 10 ta o'quvchi</p>
-                    </div>
-                    <div class="row justify-content-center">
-                        <div class="col-md-8">
-                            <div class="list-group shadow-sm">
-                                ${topResults.map((r, i) => `
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div class="d-flex align-items-center">
-                                            <h4 class="me-3 mb-0 text-muted">#${i + 1}</h4>
-                                            <div>
-                                                <h5 class="mb-0">${r.userId?.firstName} ${r.userId?.lastName}</h5>
-                                                <small class="text-muted">${r.testId?.title}</small>
-                                            </div>
-                                        </div>
-                                        <span class="badge bg-success rounded-pill p-2 px-3">${r.percentage}%</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                content.innerHTML = html;
-            } catch (e) { showAlert('Xatolik!', 'danger'); }
-        }
+        // Leaderboard removed
 
         // --- Additional Implementation ---
 
@@ -2717,7 +2781,7 @@
                         courseName,
                         questions,
                         timeLimit: 30,
-                        groupCode: groupCodeStr
+                        groupCodes: groupCodeStr // Server handles splitting
                     })
                 });
 
@@ -2784,7 +2848,7 @@
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
-                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCode })
+                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCodes: groupCode })
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -2879,6 +2943,9 @@
                                         <td><span class="badge bg-secondary">${s.groupCode}</span></td>
                                         <td>${formatDate(s.createdAt)}</td>
                                         <td>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="showStudentResultsForAdmin('${s._id}', '${s.firstName} ${s.lastName}')">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </button>
                                             <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -2935,6 +3002,64 @@
                     </div>
                 `;
                 content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function showStudentResultsForAdmin(studentId, name) {
+            showSection('adminSection');
+            const content = document.getElementById('adminContent');
+            showLoading('adminContent');
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students/${studentId}/results`);
+                const data = await response.json();
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-user-graduate"></i> ${name} - Natijalari</h3>
+                        <button class="btn btn-outline-secondary" onclick="showAdminStudents()">Back</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table bg-white rounded shadow-sm">
+                            <thead>
+                                <tr><th>Test</th><th>Ball</th><th>Foiz</th><th>Sana</th><th>Amallar</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.results.map(r => `
+                                    <tr>
+                                        <td>${r.testId?.title}</td>
+                                        <td>${r.score}/${r.totalScore}</td>
+                                        <td>${r.percentage}%</td>
+                                        <td>${formatDate(r.submittedAt)}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning" onclick="allowRetake('${studentId}', '${r.testId?._id}')">
+                                                <i class="fas fa-redo"></i> Qayta topshirish
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = html;
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function allowRetake(studentId, testId) {
+            if (!confirm('Ushbu o\'quvchiga ushbu testni qayta topshirishga ruxsat berasizmi?')) return;
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/admin/students/allow-retake`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ studentId, testId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAlert('Ruxsat berildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
+                }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
 
@@ -3160,7 +3285,7 @@
         async function deleteStudent(id) {
             if (!confirm('Haqiqatdan ham ushbu o\'quvchini o\'chirmoqchimisiz?')) return;
             try {
-                const res = await fetch(`${CONFIG.API_BASE_URL}/admin/students/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${CONFIG.API_BASE_URL}/admin/students/delete/${id}`, { method: 'DELETE' });
                 const data = await res.json();
                 if (data.success) {
                     showAlert('O\'quvchi o\'chirildi', 'success');

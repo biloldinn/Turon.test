@@ -252,7 +252,9 @@ app.post('/api/tests/submit', async (req, res) => {
         let score = 0;
         let correctCount = 0;
         const totalQuestions = test.questions.length;
-        const totalScore = test.totalScore || (totalQuestions * 5);
+
+        // Calculate total possible score based on actual questions to avoid schema default 100 bug
+        const totalScore = test.questions.reduce((sum, q) => sum + (q.score || 5), 0);
         const processedAnswers = [];
 
         test.questions.forEach((q, i) => {
@@ -260,8 +262,8 @@ app.post('/api/tests/submit', async (req, res) => {
             const correctAnswer = (q.correctAnswer || "").toString().trim().toLowerCase();
             const isCorrect = studentAnswer === correctAnswer;
 
-            // Use question's individual score or calculate based on total
-            const qScore = q.score || (totalScore / totalQuestions);
+            // Use question's individual score or 5
+            const qScore = q.score || 5;
 
             if (isCorrect) {
                 score += qScore;
@@ -277,7 +279,7 @@ app.post('/api/tests/submit', async (req, res) => {
         });
 
         const percentage = Math.round((score / totalScore) * 100);
-        const passed = percentage >= 50; // Align with grading (50% is 3/Qoniqarli)
+        const passed = percentage >= 50;
         const incorrectCount = totalQuestions - correctCount;
 
         const result = new Result({ userId, testId, answers: processedAnswers, score: Math.round(score), totalScore, percentage, passed, timeTaken });
@@ -316,8 +318,11 @@ app.post('/api/admin/tests/create', async (req, res) => {
     try {
         const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
         const totalScore = questions.reduce((sum, q) => sum + (q.score || 5), 0);
-        // Ensure groupCodes is an array
-        const groups = Array.isArray(groupCodes) ? groupCodes : [groupCodes];
+        // Ensure groupCodes is always an array of trimmed strings
+        const groups = Array.isArray(groupCodes)
+            ? groupCodes
+            : (groupCodes ? groupCodes.split(',').map(g => g.trim()).filter(g => g) : []);
+
         const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups, createdBy: req.headers['user-id'] });
         await test.save();
         res.json({ success: true, testId: test._id });

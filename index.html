@@ -538,6 +538,49 @@
                 opacity: 1;
             }
         }
+
+        /* Skip Navigation */
+        .skip-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .skip-item {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .skip-item.answered {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .skip-item.skipped {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .skip-item.active {
+            border: 2px solid var(--primary);
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -610,10 +653,6 @@
                     <input type="text" class="form-control" id="regGroup" placeholder="Guruh kodi (232)">
                 </div>
 
-                <div class="mb-3">
-                    <input type="text" class="form-control" id="regTelegram"
-                        placeholder="Telegram username (masalan: @username)">
-                </div>
 
                 <div class="mb-3">
                     <div class="input-group">
@@ -1281,19 +1320,15 @@
             const lastName = document.getElementById('regLastName').value.trim();
             const phone = document.getElementById('regPhone').value.trim();
             const groupCode = document.getElementById('regGroup').value.trim();
-            const telegramUsername = document.getElementById('regTelegram').value.trim().replace('@', '');
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
 
-            // Validation
-            if (!firstName || !lastName || !phone || !groupCode || !password || !confirmPassword) {
-                showAlert('Iltimos, barcha maydonlarni to\'ldiring', 'warning');
-                return;
+            if (!firstName || !lastName || !phone || !groupCode || !password) {
+                return showAlert('Barcha maydonlarni to\'ldiring', 'warning');
             }
 
             if (password !== confirmPassword) {
-                showAlert('Parollar mos kelmadi', 'danger');
-                return;
+                return showAlert('Parollar mos kelmadi', 'warning');
             }
 
             if (password.length < 6) {
@@ -1305,13 +1340,11 @@
                 const response = await fetch(`${CONFIG.API_BASE_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ firstName, lastName, phone, groupCode, password, telegramUsername })
+                    body: JSON.stringify({ firstName, lastName, phone, groupCode, password })
                 });
-
                 const data = await response.json();
-
                 if (data.success) {
-                    showAlert('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! Endi kirishingiz mumkin.', 'success');
+                    showAlert('Ro\'yxatdan o\'tdingiz! Kirishinigiz mumkin.', 'success');
                     showLogin();
                 } else {
                     showAlert('Xatolik: ' + data.error, 'danger');
@@ -1642,9 +1675,16 @@
                         </div>
                     </div>
                     
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        Testda ${currentTest.questions.length} ta savol bor. Har bir savolga javob bering.
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-info-circle"></i> 
+                            Testda ${currentTest.questions.length} ta savol bor.
+                        </div>
+                        <div id="answeredStats" class="badge bg-primary">Javob berildi: 0/${currentTest.questions.length}</div>
+                    </div>
+
+                    <div id="skipNavContainer" class="skip-nav">
+                        <!-- Questions navigation populated here -->
                     </div>
                     
                     <div id="testQuestionsContainer">
@@ -1676,6 +1716,9 @@
 
                 // Start timer
                 startTimer();
+
+                // Update Skip Nav
+                updateSkipNav();
 
                 // Anti-Cheat Initialization
                 initAntiCheat();
@@ -1771,6 +1814,10 @@
                 labels.forEach(l => l.classList.remove('selected'));
                 element.classList.add('selected');
 
+                // Update answered stats
+                updateAnsweredStats();
+                updateSkipNav();
+
                 // Send screen update
                 if (socket) {
                     socket.emit('screen_update', {
@@ -1784,6 +1831,36 @@
             } catch (e) {
                 console.error('selectOption error:', e);
             }
+        }
+
+        function updateAnsweredStats() {
+            const answeredCount = Object.keys(currentTest.answers).length;
+            const totalQuestions = currentTest.questions.length;
+            document.getElementById('answeredStats').textContent = `Javob berildi: ${answeredCount}/${totalQuestions}`;
+        }
+
+        function updateSkipNav() {
+            const skipNavContainer = document.getElementById('skipNavContainer');
+            if (!skipNavContainer) return;
+
+            let navHtml = '';
+            for (let i = 0; i < currentTest.questions.length; i++) {
+                const isAnswered = currentTest.answers[i] !== undefined;
+                const isActive = i === currentTest.currentQuestionIndex;
+                navHtml += `
+                    <button class="btn btn-sm ${isActive ? 'btn-primary' : (isAnswered ? 'btn-success' : 'btn-outline-secondary')}"
+                            onclick="goToQuestion(${i})">
+                        ${i + 1}
+                    </button>
+                `;
+            }
+            skipNavContainer.innerHTML = navHtml;
+        }
+
+        function goToQuestion(index) {
+            currentTest.currentQuestionIndex = index;
+            renderTestQuestion();
+            updateSkipNav();
         }
 
         function shuffleArray(array) {
@@ -1828,9 +1905,21 @@
             // Check if all questions answered
             const answeredCount = currentTest.answers ? Object.keys(currentTest.answers).length : 0;
             const totalQuestions = currentTest.questions.length;
+            const skippedCount = totalQuestions - answeredCount; // Simplified skipped count
 
-            if (answeredCount < totalQuestions) {
-                if (!confirm(`${totalQuestions - answeredCount} ta savolga javob bermadingiz. Testni shu holatda topshirishni istaysizmi?`)) {
+            if (skippedCount > 0) {
+                let message = `${skippedCount} ta savolga javob bermadingiz.`;
+
+                if (!confirm(`${message} Testni shu holatda topshirishni istaysizmi?`)) {
+                    // Try to scroll to first unanswered
+                    for (let i = 0; i < totalQuestions; i++) {
+                        if (currentTest.answers[i] === undefined) {
+                            goToQuestion(i);
+                            startTimer(); // Restart timer
+                            return;
+                        }
+                    }
+                    startTimer();
                     return;
                 }
             }
@@ -1908,10 +1997,23 @@
                     <div class="col-md-10 col-lg-8">
                         <div class="result-card animate__animated animate__zoomIn">
                             ${result.percentage >= 90 ? `<h2><i class="fas fa-trophy text-warning"></i> Tabriklaymiz!</h2>` : `<h2>Test yakunlandi</h2>`}
-                            <p class="mb-4">${result.percentage >= 90 ? 'Siz a\'lo natija ko\'rsatdingiz' : 'Test natijangiz bilan tanishing'}</p>
+                            <p class="mb-2">${result.percentage >= 50 ? 'Tabriklaymiz! Siz muvaffaqiyatli o\'tdingiz.' : 'Afsuski, yetarli ball to\'play olmadingiz.'}</p>
                             
                             <div class="score-circle ${result.passed ? 'bg-success' : 'bg-danger'}">
                                 ${result.percentage}%
+                            </div>
+
+                            <div class="row mt-4 mb-4">
+                                <div class="col-6">
+                                    <div class="bg-white text-success p-2 rounded">
+                                        <i class="fas fa-check-circle"></i> To'g'ri: ${result.correctCount}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-white text-danger p-2 rounded">
+                                        <i class="fas fa-times-circle"></i> Noto'g'ri: ${result.incorrectCount}
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="baho-box mt-3 mb-4">
@@ -2000,18 +2102,11 @@
                 }
 
                 let html = `
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h3><i class="fas fa-chart-bar text-success"></i> Mening natijalarim</h3>
-                                    <p class="text-muted">Jami ${data.results.length} ta natija</p>
-                                </div>
-                                <button class="btn btn-outline-primary" onclick="showStudentTests()">
-                                    <i class="fas fa-arrow-left"></i> Testlarga qaytish
-                                </button>
-                            </div>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-chart-bar text-success"></i> Mening natijalarim</h3>
+                        <button class="btn btn-outline-primary" onclick="showStudentTests()">
+                            <i class="fas fa-arrow-left"></i> Testlarga qaytish
+                        </button>
                     </div>
                     
                     <div class="table-responsive">
@@ -2027,6 +2122,7 @@
                                     <th>Natija</th>
                                     <th>Vaqt</th>
                                     <th>Sana</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2038,7 +2134,7 @@
                     const incorrectCount = result.answers.length - correctCount;
 
                     html += `
-                        <tr class="cursor-pointer" onclick="viewResultDetails('${result._id}')">
+                        <tr>
                             <td>${index + 1}</td>
                             <td>${result.testId?.title || 'Noma\'lum test'}</td>
                             <td><span class="text-success"><strong>${correctCount}</strong></span></td>
@@ -2056,6 +2152,11 @@
                             </td>
                             <td>${timeTaken} daqiqa</td>
                             <td>${formatDate(result.submittedAt)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewResultDetails('${result._id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -2207,10 +2308,8 @@
                                             <td>${index + 1}</td>
                                             <td>${answer.question || 'Noma\'lum'}</td>
                                             <td>
-                                                <span class="${answer.isCorrect ? 'text-success' : 'text-danger'}">
-                                                    ${answer.selected || 'Javob berilmagan'}
-                                                    ${answer.isCorrect ? ' ✓' : ' ✗'}
-                                                </span>
+                                                ${answer.selected || 'Javob berilmagan'}
+                                                ${answer.isCorrect ? ' <span class="text-success">✓</span>' : ' <span class="text-danger">✗</span>'}
                                             </td>
                                             <td>${answer.correct}</td>
                                             <td>${answer.score}</td>
@@ -2239,9 +2338,8 @@
 
             // Update active nav
             document.querySelectorAll('.nav-link-admin').forEach(link => {
-                link.classList.remove('active');
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminDashboard'));
             });
-            event.target.classList.add('active');
 
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/dashboard`);
@@ -2466,7 +2564,7 @@
                 case 'test_created_from_ai': return 'AI test yaratish';
                 case 'test_created_manual': return 'Test yaratish';
                 case 'registration': return 'Ro\'yxatdan o\'tish';
-                default: return activity;
+                default: return 'Noma\'lum harakat';
             }
         }
 
@@ -2580,7 +2678,9 @@
             `;
             // Re-attach listeners because we replaced innerHTML
             const newFileInput = document.getElementById('aiFileInput');
-            newFileInput.onchange = handleAIFileSelect;
+            if (newFileInput) { // Check if element exists after re-rendering
+                newFileInput.onchange = handleAIFileSelect;
+            }
         }
 
         async function generateAITest() {
@@ -2674,6 +2774,10 @@
                         <option value="D" ${q.correctAnswer === q.options?.[3] ? 'selected' : ''}>Variant D</option>
                     </select>
                 </div>
+                <div class="mt-2">
+                    <label class="form-label">Ball</label>
+                    <input type="number" class="form-control question-score" value="${q.score || 5}" min="1">
+                </div>
             `;
             container.appendChild(div);
         }
@@ -2710,6 +2814,10 @@
                         <option value="D">Variant D</option>
                     </select>
                 </div>
+                <div class="mt-2">
+                    <label class="form-label">Ball</label>
+                    <input type="number" class="form-control question-score" value="5" min="1">
+                </div>
             `;
             container.appendChild(div);
         }
@@ -2729,7 +2837,8 @@
                 const opts = Array.from(card.querySelectorAll('.opt')).map(i => i.value);
                 const correctLetter = card.querySelector('.correct-answer').value;
                 const correctAnswer = opts[correctLetter.charCodeAt(0) - 65];
-                questions.push({ text, options: opts, correctAnswer, score: 5 });
+                const score = parseInt(card.querySelector('.question-score').value) || 5;
+                questions.push({ text, options: opts, correctAnswer, score });
             });
 
             try {
@@ -2744,6 +2853,8 @@
                     bootstrap.Modal.getInstance(document.getElementById('manualTestModal')).hide();
                     showAdminTests();
                     showAlert(testId ? 'Test yangilandi' : 'Test saqlandi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
                 }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
@@ -2779,6 +2890,8 @@
                 if (data.success) {
                     showAdminTests();
                     showAlert('Test o\'chirildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
                 }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
@@ -2805,6 +2918,8 @@
                     bootstrap.Modal.getInstance(document.getElementById('addAdminModal')).hide();
                     showAdminManagement();
                     showAlert('Admin yaratildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
                 }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
@@ -2817,6 +2932,8 @@
                 if (data.success) {
                     showAdminManagement();
                     showAlert('Admin o\'chirildi', 'success');
+                } else {
+                    showAlert('Xatolik: ' + data.error, 'danger');
                 }
             } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
@@ -2850,6 +2967,11 @@
             currentPage = 'adminStudents';
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
+
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminStudents'));
+            });
 
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students`);
@@ -2935,6 +3057,11 @@
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
 
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminResults'));
+            });
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/results`);
                 const data = await response.json();
@@ -2949,7 +3076,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover bg-white rounded shadow-sm">
                             <thead>
-                                <tr><th>O'quvchi</th><th>Guruh</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Baho</th><th>Sana</th></tr>
+                                <tr><th>O'quvchi</th><th>Guruh</th><th>Test</th><th>Ball</th><th>Foiz</th><th>Baho</th><th>Sana</th><th></th></tr>
                             </thead>
                             <tbody>
                                 ${data.results.map(r => {
@@ -2963,6 +3090,11 @@
                                         <td>${r.percentage}%</td>
                                         <td><span class="badge bg-light ${baho.color}">${baho.grade}</span></td>
                                         <td>${formatDate(r.submittedAt)}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewResultDetails('${r._id}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
                                     </tr>
                                 `;
                 }).join('')}
@@ -2979,6 +3111,11 @@
             currentPage = 'adminTests';
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
+
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminTests'));
+            });
 
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/tests`);
@@ -3005,6 +3142,7 @@
                                             </button>
                                             <ul class="dropdown-menu">
                                                 <li><a class="dropdown-item" href="#" onclick="editTest('${test._id}')"><i class="fas fa-edit"></i> Tahrirlash</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="manageTestGroups('${test._id}', '${(test.groupCodes || []).join(', ')}')"><i class="fas fa-users"></i> Guruhlar</a></li>
                                                 <li><a class="dropdown-item text-danger" href="#" onclick="deleteTest('${test._id}')"><i class="fas fa-trash"></i> O'chirish</a></li>
                                             </ul>
                                         </div>
@@ -3138,6 +3276,11 @@
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
 
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminFiles'));
+            });
+
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/files`);
                 const data = await response.json();
@@ -3157,6 +3300,11 @@
             currentPage = 'activity';
             const content = document.getElementById('adminContent');
             showLoading('adminContent');
+
+            // Highlight nav link
+            document.querySelectorAll('.nav-link-admin').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('onclick')?.includes('showAdminActivity'));
+            });
 
             try {
                 const response = await fetch(`${CONFIG.API_BASE_URL}/admin/activity`);
