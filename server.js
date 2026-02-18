@@ -233,9 +233,13 @@ app.post('/api/tests/submit', async (req, res) => {
         let correctCount = 0;
         const totalQuestions = test.questions.length;
         const totalScore = test.totalScore || (totalQuestions * 5);
+        const processedAnswers = [];
 
         test.questions.forEach((q, i) => {
-            const isCorrect = q.correctAnswer === answers[i];
+            const studentAnswer = (answers[i] || "").toString().trim().toLowerCase();
+            const correctAnswer = (q.correctAnswer || "").toString().trim().toLowerCase();
+            const isCorrect = studentAnswer === correctAnswer;
+
             // Use question's individual score or calculate based on total
             const qScore = q.score || (totalScore / totalQuestions);
 
@@ -253,7 +257,7 @@ app.post('/api/tests/submit', async (req, res) => {
         });
 
         const percentage = Math.round((score / totalScore) * 100);
-        const passed = percentage >= 60;
+        const passed = percentage >= 50; // Align with grading (50% is 3/Qoniqarli)
         const incorrectCount = totalQuestions - correctCount;
 
         const result = new Result({ userId, testId, answers: processedAnswers, score: Math.round(score), totalScore, percentage, passed, timeTaken });
