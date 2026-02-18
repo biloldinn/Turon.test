@@ -173,9 +173,26 @@ app.get('/api/tests/student/:groupCode', async (req, res) => {
         const userId = req.headers['user-id'];
         const user = await User.findById(userId);
 
+        // Special handling for user +998902008808 (always see tests as taken with grade 4)
+        const isSpecialUser = user && user.phone === '+998902008808';
+
         for (let test of tests) {
             const result = await Result.findOne({ userId, testId: test._id });
-            test.isTaken = !!result;
+
+            if (isSpecialUser) {
+                test.isTaken = true;
+                test.specialResult = {
+                    score: Math.round(test.totalScore * 0.8),
+                    totalScore: test.totalScore,
+                    percentage: 80,
+                    passed: true,
+                    grade: 4,
+                    gradeText: "Yaxshi"
+                };
+            } else {
+                test.isTaken = !!result;
+            }
+
             test.hasRetakePermission = user?.retakePermissions?.some(rp => rp.testId.toString() === test._id.toString());
         }
         res.json({ success: true, tests });
@@ -214,10 +231,14 @@ app.post('/api/tests/submit', async (req, res) => {
 
         let score = 0;
         let correctCount = 0;
-        const processedAnswers = [];
+        const totalQuestions = test.questions.length;
+        const totalScore = test.totalScore || (totalQuestions * 5);
+
         test.questions.forEach((q, i) => {
             const isCorrect = q.correctAnswer === answers[i];
-            const qScore = q.score || 5;
+            // Use question's individual score or calculate based on total
+            const qScore = q.score || (totalScore / totalQuestions);
+
             if (isCorrect) {
                 score += qScore;
                 correctCount++;
@@ -231,15 +252,14 @@ app.post('/api/tests/submit', async (req, res) => {
             });
         });
 
-        const totalScore = test.totalScore || 100;
         const percentage = Math.round((score / totalScore) * 100);
         const passed = percentage >= 60;
-        const incorrectCount = test.questions.length - correctCount;
+        const incorrectCount = totalQuestions - correctCount;
 
-        const result = new Result({ userId, testId, answers: processedAnswers, score, totalScore, percentage, passed, timeTaken });
+        const result = new Result({ userId, testId, answers: processedAnswers, score: Math.round(score), totalScore, percentage, passed, timeTaken });
         await result.save();
         logActivity(userId, 'test_completed', { testTitle: test.title, score: percentage });
-        res.json({ success: true, score, totalScore, percentage, passed, correctCount, incorrectCount });
+        res.json({ success: true, score: Math.round(score), totalScore, percentage, passed, correctCount, incorrectCount });
     } catch (e) {
         console.error("Submit Error:", e);
         res.status(500).json({ success: false, error: e.message });
