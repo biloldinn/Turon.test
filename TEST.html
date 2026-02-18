@@ -2118,7 +2118,7 @@
                                         <th>#</th>
                                         <th>Savol</th>
                                         <th>Sizning javobi</th>
-                                        <th>To'g'ri javob</th>
+                                        ${currentUser.role === 'admin' ? '<th>To\'g\'ri javob</th>' : ''}
                                         <th>Ball</th>
                                     </tr>
                                 </thead>
@@ -2133,7 +2133,7 @@
                                                     ${answer.isCorrect ? ' ✓' : ' ✗'}
                                                 </span>
                                             </td>
-                                            <td>${answer.correct}</td>
+                                            ${currentUser.role === 'admin' ? `<td>${answer.correct}</td>` : ''}
                                             <td>${answer.score}</td>
                                         </tr>
                                     `).join('')}

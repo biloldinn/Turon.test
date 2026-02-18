@@ -216,8 +216,28 @@ app.get('/api/tests/take/:testId', async (req, res) => {
 
 app.get('/api/results/:id', async (req, res) => {
     try {
+        const userId = req.headers['user-id'];
+        const requestingUser = await User.findById(userId);
         const result = await Result.findById(req.params.id).populate('userId').populate('testId');
+
         if (!result) return res.status(404).json({ success: false, error: 'Natija topilmadi' });
+
+        // If student is viewing, remove correct answer info
+        if (requestingUser && requestingUser.role === 'student') {
+            const filteredAnswers = result.answers.map(ans => ({
+                question: ans.question,
+                selected: ans.selected,
+                isCorrect: ans.isCorrect,
+                score: ans.score
+                // 'correct' is omitted
+            }));
+
+            // Convert to plain object to modify
+            const sanitizedResult = result.toObject();
+            sanitizedResult.answers = filteredAnswers;
+            return res.json({ success: true, result: sanitizedResult });
+        }
+
         res.json({ success: true, result });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
