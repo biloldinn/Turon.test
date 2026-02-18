@@ -611,6 +611,11 @@
                 </div>
 
                 <div class="mb-3">
+                    <input type="text" class="form-control" id="regTelegram"
+                        placeholder="Telegram username (masalan: @username)">
+                </div>
+
+                <div class="mb-3">
                     <div class="input-group">
                         <input type="password" class="form-control" id="regPassword"
                             placeholder="Parol (kamida 6 ta belgi)">
@@ -989,6 +994,24 @@
         </div>
     </div>
 
+    <!-- Retake Permission Modal -->
+    <div class="modal fade" id="retakeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark"><i class="fas fa-undo"></i> Qayta topshirishga ruxsat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Qaysi testni qayta topshirishga ruxsat berasiz?</p>
+                    <div id="retakeTestList" class="list-group">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Test Results Modal -->
     <div class="modal fade" id="testResultsModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
@@ -1258,6 +1281,7 @@
             const lastName = document.getElementById('regLastName').value.trim();
             const phone = document.getElementById('regPhone').value.trim();
             const groupCode = document.getElementById('regGroup').value.trim();
+            const telegramUsername = document.getElementById('regTelegram').value.trim().replace('@', '');
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
 
@@ -1281,7 +1305,7 @@
                 const response = await fetch(`${CONFIG.API_BASE_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ firstName, lastName, phone, groupCode, password })
+                    body: JSON.stringify({ firstName, lastName, phone, groupCode, password, telegramUsername })
                 });
 
                 const data = await response.json();
@@ -1532,17 +1556,24 @@
                                     </div>
                                     
                                     <div class="mt-auto">
-                                        ${test.isTaken ?
-                            `<button class="btn btn-secondary w-100" disabled>
+                                        ${test.hasRetakePermission ?
+                            `<button class="btn btn-warning w-100 mb-2" onclick="startTest('${test._id}')">
+                                                <i class="fas fa-redo"></i> Qayta topshirish
+                                            </button>
+                                            <div class="alert alert-warning py-1 px-2 small mb-0 mt-2">
+                                                <i class="fas fa-info-circle"></i> Senga ushbu testni qayta topshirish imkoniyati berildi!
+                                            </div>` :
+                            test.isTaken ?
+                                `<button class="btn btn-secondary w-100" disabled>
                                                 <i class="fas fa-check-circle"></i> Topshirilgan
                                             </button>` :
-                            !isAvailable ?
-                                `<button class="btn btn-outline-secondary w-100" disabled>
-                                                <i class="fas fa-lock"></i> ${now < startTime ? 'Hali boshlanmadi' : 'Muddati o\'tgan'}
-                                            </button>` :
-                                `<button class="btn btn-primary w-100" onclick="startTest('${test._id}')">
-                                                <i class="fas fa-play-circle"></i> Testni boshlash
-                                            </button>`
+                                !isAvailable ?
+                                    `<button class="btn btn-outline-secondary w-100" disabled>
+                                                    <i class="fas fa-lock"></i> ${now < startTime ? 'Hali boshlanmadi' : 'Muddati o\'tgan'}
+                                                </button>` :
+                                    `<button class="btn btn-primary w-100" onclick="startTest('${test._id}')">
+                                                    <i class="fas fa-play-circle"></i> Testni boshlash
+                                                </button>`
                         }
                                     </div>
                                 </div>
@@ -1659,6 +1690,17 @@
                     });
                 }
 
+                if (data.test.hasRetakePermission) {
+                    showAlert('Sizga ushbu testni qayta topshirish uchun imkoniyat berildi!', 'info', 7000);
+                    // Clear retake permission on server
+                    fetch(`${CONFIG.API_BASE_URL}/tests/clear-retake`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+                        body: JSON.stringify({ testId: data.test._id })
+                    });
+                }
+
+                currentTest = data.test;
             } catch (error) {
                 console.error('Error starting test:', error);
                 showAlert('Testni boshlashda xatolik', 'danger');
@@ -1879,15 +1921,27 @@
                             <h3 class="mb-4">${currentTest.title}</h3>
                             
                             <div class="row mt-4">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <div class="bg-white text-dark p-3 rounded shadow-sm">
                                         <h6>Olingan ball</h6>
                                         <h4 class="text-success">${result.score}/${result.totalScore}</h4>
                                     </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <div class="bg-white text-dark p-3 rounded shadow-sm">
-                                        <h6>Sifat darajasi</h6>
+                                        <h6>To'g'ri</h6>
+                                        <h4 class="text-success">${result.correctCount || 0}</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-white text-dark p-3 rounded shadow-sm">
+                                        <h6>Noto'g'ri</h6>
+                                        <h4 class="text-danger">${result.incorrectCount || 0}</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-white text-dark p-3 rounded shadow-sm">
+                                        <h6>Sifat</h6>
                                         <h4 class="${baho.color}">${baho.text}</h4>
                                     </div>
                                 </div>
@@ -1966,6 +2020,8 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Test nomi</th>
+                                    <th>To'g'ri</th>
+                                    <th>Noto'g'ri</th>
                                     <th>Ball</th>
                                     <th>Foiz</th>
                                     <th>Natija</th>
@@ -1978,11 +2034,15 @@
 
                 data.results.forEach((result, index) => {
                     const timeTaken = Math.round(result.timeTaken / 60);
+                    const correctCount = result.answers.filter(a => a.isCorrect).length;
+                    const incorrectCount = result.answers.length - correctCount;
 
                     html += `
                         <tr class="cursor-pointer" onclick="viewResultDetails('${result._id}')">
                             <td>${index + 1}</td>
                             <td>${result.testId?.title || 'Noma\'lum test'}</td>
+                            <td><span class="text-success"><strong>${correctCount}</strong></span></td>
+                            <td><span class="text-danger"><strong>${incorrectCount}</strong></span></td>
                             <td><strong>${result.score}/${result.totalScore}</strong></td>
                             <td>
                                 <span class="badge ${result.percentage >= 60 ? 'bg-success' : 'bg-danger'}">
@@ -2073,41 +2133,57 @@
                     content.innerHTML = `
                         <h4>Test natijasi: ${data.result.testId?.title || 'Noma\'lum'}</h4>
                         <div class="row mb-4">
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h6>Umumiy ball</h6>
-                                        <h3>${data.result.score}/${data.result.totalScore}</h3>
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">To'g'ri</h6>
+                                        <h4 class="text-success mb-0">${data.result.answers.filter(a => a.isCorrect).length}</h4>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h6>Foiz</h6>
-                                        <h3 class="${data.result.percentage >= 60 ? 'text-success' : 'text-danger'}">
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">Noto'g'ri</h6>
+                                        <h4 class="text-danger mb-0">${data.result.answers.length - data.result.answers.filter(a => a.isCorrect).length}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">Umumiy ball</h6>
+                                        <h4 class="mb-0">${data.result.score}/${data.result.totalScore}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">Foiz</h6>
+                                        <h4 class="${data.result.percentage >= 60 ? 'text-success' : 'text-danger'} mb-0">
                                             ${data.result.percentage}%
-                                        </h3>
+                                        </h4>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h6>Natija</h6>
-                                        <h3>
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">Natija</h6>
+                                        <h4 class="mb-0">
                                             <span class="badge ${data.result.passed ? 'bg-success' : 'bg-danger'}">
                                                 ${data.result.passed ? "O'tdi" : "O'tmadi"}
                                             </span>
-                                        </h3>
+                                        </h4>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h6>Vaqt</h6>
-                                        <h3>${Math.round(data.result.timeTaken / 60)} daq</h3>
+                            <div class="col-md-2">
+                                <div class="card text-center mb-2">
+                                    <div class="card-body p-2">
+                                        <h6 class="small mb-1">Vaqt</h6>
+                                        <h4 class="mb-0">${Math.round(data.result.timeTaken / 60)} daq</h4>
                                     </div>
                                 </div>
                             </div>
@@ -2800,10 +2876,10 @@
 
                 Object.keys(groups).sort().forEach(groupCode => {
                     html += `
-                        <div class="card mb-4 shadow-sm border-0">
-                            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-                                <h5 class="mb-0 text-primary"><i class="fas fa-users"></i> Guruh: ${groupCode}</h5>
-                                <span class="badge bg-info">${groups[groupCode].length} o'quvchi</span>
+                        <div class="card mb-4 shadow-sm border-0 overflow-hidden">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0"><i class="fas fa-users"></i> Guruh: ${groupCode}</h5>
+                                <span class="badge bg-white text-primary">${groups[groupCode].length} o'quvchi</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
@@ -2817,6 +2893,9 @@
                                                 <td>${s.phone}</td>
                                                 <td>${formatDate(s.createdAt)}</td>
                                                 <td class="text-end">
+                                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="showRetakeModal('${s._id}')">
+                                                        <i class="fas fa-undo"></i> Qayta topshirish
+                                                    </button>
                                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s._id}')">
                                                         <i class="fas fa-trash"></i> O'chirish
                                                     </button>
@@ -3188,6 +3267,48 @@
                     }
                 })
                 .catch(e => showAlert('Server bilan ulanishda xatolik', 'danger'));
+        }
+
+        async function showRetakeModal(userId) {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students/${userId}/results`);
+                const data = await response.json();
+
+                const list = document.getElementById('retakeTestList');
+                if (!data.results || data.results.length === 0) {
+                    list.innerHTML = '<div class="alert alert-info">O\'quvchi hali birorta test topshirmagan.</div>';
+                } else {
+                    list.innerHTML = data.results.map(r => `
+                        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                            onclick="allowRetake('${userId}', '${r.testId?._id}')">
+                            <div>
+                                <strong>${r.testId?.title || 'O\'chirilgan test'}</strong><br>
+                                <small>${r.percentage}% | ${formatDate(r.submittedAt)}</small>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    `).join('');
+                }
+
+                new bootstrap.Modal(document.getElementById('retakeModal')).show();
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
+        }
+
+        async function allowRetake(userId, testId) {
+            if (!confirm('Ushbu o\'quvchiga testni qayta topshirishga ruxsat berasizmi? Avvalgi natija o\'chirib tashlanadi.')) return;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/admin/students/allow-retake`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+                    body: JSON.stringify({ userId, testId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('retakeModal')).hide();
+                    showAlert('Muvaffaqiyatli! O\'quvchiga qayta topshirish imkoniyati berildi.', 'success');
+                }
+            } catch (e) { showAlert('Xatolik!', 'danger'); }
         }
     </script>
 </body>

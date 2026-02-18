@@ -42,7 +42,12 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     groupCode: { type: String, required: true },
+    telegramUsername: { type: String, default: '' },
     role: { type: String, default: 'student', enum: ['student', 'admin'] },
+    retakePermissions: [{
+        testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' },
+        grantedAt: { type: Date, default: Date.now }
+    }],
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -142,7 +147,7 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(401).json({ success: false, error: 'Login yoki parol xato' });
 
         logActivity(user._id, user.role === 'admin' ? 'admin_login' : 'student_login');
-        res.json({ success: true, user: { id: user._id, firstName: user.firstName, lastName: user.lastName, phone: user.phone, role: user.role, groupCode: user.groupCode } });
+        res.json({ success: true, user: { id: user._id, firstName: user.firstName, lastName: user.lastName, phone: user.phone, role: user.role, groupCode: user.groupCode, retakePermissions: user.retakePermissions } });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -150,11 +155,11 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
     try {
-        const { firstName, lastName, phone, groupCode, password } = req.body;
+        const { firstName, lastName, phone, groupCode, password, telegramUsername } = req.body;
         const existing = await User.findOne({ phone });
         if (existing) return res.json({ success: false, error: 'Bu raqam band' });
 
-        const user = new User({ firstName, lastName, phone, groupCode, password });
+        const user = new User({ firstName, lastName, phone, groupCode, password, telegramUsername });
         await user.save();
         logActivity(user._id, 'registration');
         res.json({ success: true });
@@ -166,9 +171,12 @@ app.get('/api/tests/student/:groupCode', async (req, res) => {
     try {
         const tests = await Test.find({ groupCodes: req.params.groupCode }).lean().sort({ createdAt: -1 });
         const userId = req.headers['user-id'];
+        const user = await User.findById(userId);
+
         for (let test of tests) {
             const result = await Result.findOne({ userId, testId: test._id });
             test.isTaken = !!result;
+            test.hasRetakePermission = user?.retakePermissions?.some(rp => rp.testId.toString() === test._id.toString());
         }
         res.json({ success: true, tests });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -205,23 +213,37 @@ app.post('/api/tests/submit', async (req, res) => {
         if (!test) return res.status(404).json({ success: false, error: 'Test topilmadi' });
 
         let score = 0;
+        let correctCount = 0;
         const processedAnswers = [];
         test.questions.forEach((q, i) => {
             const isCorrect = q.correctAnswer === answers[i];
             const qScore = q.score || 5;
-            if (isCorrect) score += qScore;
-            processedAnswers.push({ question: q.text, selected: answers[i], correct: q.correctAnswer, isCorrect, score: isCorrect ? qScore : 0 });
+            if (isCorrect) {
+                score += qScore;
+                correctCount++;
+            }
+            processedAnswers.push({
+                question: q.text,
+                selected: answers[i],
+                correct: q.correctAnswer,
+                isCorrect,
+                score: isCorrect ? qScore : 0
+            });
         });
 
         const totalScore = test.totalScore || 100;
         const percentage = Math.round((score / totalScore) * 100);
         const passed = percentage >= 60;
+        const incorrectCount = test.questions.length - correctCount;
 
         const result = new Result({ userId, testId, answers: processedAnswers, score, totalScore, percentage, passed, timeTaken });
         await result.save();
         logActivity(userId, 'test_completed', { testTitle: test.title, score: percentage });
-        res.json({ success: true, score, totalScore, percentage, passed });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+        res.json({ success: true, score, totalScore, percentage, passed, correctCount, incorrectCount });
+    } catch (e) {
+        console.error("Submit Error:", e);
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // Admin
@@ -294,11 +316,11 @@ app.delete('/api/admin/tests/delete/:id', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// AI Test Generation (Refined)
+// AI Test Generation (Gemini Integration)
 app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res) => {
     try {
         const { topic, count, difficulty, gradeLevel, courseName } = req.body;
-        const API_KEY = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY;
+        const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.AI_API_KEY;
         let contextText = topic || "";
 
         // If file is uploaded, extract text
@@ -309,73 +331,44 @@ app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res)
             fs.unlinkSync(req.file.path);
         }
 
-        if (!API_KEY) {
-            const mockQuestions = Array.from({ length: parseInt(count) || 5 }).map((_, i) => ({
-                text: `${topic || "Fayl"} bo'yicha mukammal AI savoli №${i + 1}`,
-                options: ["To'g'ri javob", "Noto'g'ri 1", "Noto'g'ri 2", "Noto'g'ri 3"],
-                correctAnswer: "To'g'ri javob",
-                score: 5,
-                createdByAI: true
-            }));
-            return res.json({ success: true, questions: mockQuestions });
+        if (!GEMINI_API_KEY) {
+            return res.status(400).json({ success: false, error: "Gemini API key topilmadi (GOOGLE_API_KEY)" });
         }
 
         const prompt = `
-            Sen o'quv markazi uchun professional, tajribali va qattiqqo'l test tuzuvchi ekspertsan. 
-            Sening vazifang - berilgan mavzu yoki matn asosida O'QUVCHI BILIMINI CHUQUR TEKSHIRADIGAN test savollarini tuzish.
+            Sen o'quv markazi uchun professional test tuzuvchi ekspertsan. 
+            Berilgan mavzu yoki matn asosida o'quvchi bilimini tekshiradigan test savollarini tuz.
 
             KURS: ${courseName || 'Umumiy'}
             MAVZU/MATN: ${contextText.substring(0, 5000)}
             SAVOLLAR SONI: ${count}
-            QIYINCHILIK DARAJA: ${difficulty || 'medium'} (easy, medium, hard)
+            QIYINCHILIK DARAJA: ${difficulty || 'medium'}
             SINFI/DARAJA: ${gradeLevel || 'ixtiyoriy'}
             TIL: O'zbek tili
 
-            SAVOLLARGA QO'YILADIGAN TALABLAR:
+            TALABLAR:
             1. Har bir savol 4 ta variantdan (A, B, C, D) iborat bo'lsin.
-            2. Variantlar bir-biriga mantiqan juda yaqin bo'lsin (o'quvchini chalg'itish uchun).
-            3. Savollar faqat yod olingan faktlar haqida emas, balki mantiqiy fikrlash, tahlil va amaliy qo'llashni tekshirsin.
-            4. Agar "QIYIN" daraja tanlangan bo'lsa, savollar ochiq-oydin bo'lmasin, chuqur bilim talab qilsin.
-            5. Agar faqat MAVZU berilgan bo'lsa (matn bo'lmasa), o'zingning keng bilim bazangdan foydalanib, eng dolzarb va darsliklarga mos savollarni tuz.
-            6. Savol matni va variantlar imlo xatolarisiz, tushunarli tilda yozilgan bo'lishi shart.
-
-            DIQQAT: FAQAT JSON FORMATDA JAVOB QAYTAR.
-            JSON FORMATI: 
-            {
-                "questions": [
-                    {
-                        "text": "Savol matni...",
-                        "options": ["Variant A", "Variant B", "Variant C", "Variant D"],
-                        "correctAnswer": "To'g'ri javob texti (Variantlardan biriga aynan mos bo'lishi shart)",
-                        "score": 5
-                    }
-                ]
-            }
+            2. FAQAT JSON FORMATDA JAVOB QAYTAR.
+            3. Javob formati: {"questions": [{"text": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "to'g'ri variant matni", "score": 5}]}
         `;
 
-        const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
-            model: "deepseek-chat",
-            messages: [
-                { role: "system", content: "Sen faqat JSON qaytaradigan, pedagogik talablarga javob beradigan professional test tuzuvchi yordamchisan." },
-                { role: "user", content: prompt }
-            ],
-            response_format: { type: 'json_object' }
-        }, {
-            headers: { 'Authorization': `Bearer ${API_KEY}` }
+        const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+            contents: [{ parts: [{ text: prompt }] }]
         });
 
-        let content = response.data.choices[0].message.content;
-        // Clean markdown if AI included it
+        let content = response.data.candidates[0].content.parts[0].text;
+
+        // Clean markdown JSON formatting if present
         content = content.replace(/```json|```/g, '').trim();
 
         const parsed = JSON.parse(content);
-        const questions = parsed.questions || parsed;
+        const questions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
 
         res.json({ success: true, questions: questions.map(q => ({ ...q, createdByAI: true })) });
 
     } catch (e) {
-        console.error("AI Error:", e);
-        res.status(500).json({ success: false, error: "AI test yaratishda xatolik: " + e.message });
+        console.error("Gemini AI Error:", e.response?.data || e.message);
+        res.status(500).json({ success: false, error: "AI test yaratishda xatolik: " + (e.response?.data?.error?.message || e.message) });
     }
 });
 
@@ -439,6 +432,43 @@ app.delete('/api/admin/students/delete/:id', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// Retake Permission Management
+app.get('/api/admin/students/:id/results', async (req, res) => {
+    try {
+        const results = await Result.find({ userId: req.params.id }).populate('testId').sort({ submittedAt: -1 });
+        res.json({ success: true, results });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/admin/students/allow-retake', async (req, res) => {
+    try {
+        const { userId, testId } = req.body;
+
+        // Remove existing result to allow clean retake
+        await Result.deleteMany({ userId, testId });
+
+        // Add to retakePermissions
+        await User.findByIdAndUpdate(userId, {
+            $push: { retakePermissions: { testId, grantedAt: new Date() } }
+        });
+
+        logActivity(req.headers['user-id'], 'allow_retake', { userId, testId });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Clear retake permission when test is started or finished
+app.post('/api/tests/clear-retake', async (req, res) => {
+    try {
+        const { testId } = req.body;
+        const userId = req.headers['user-id'];
+        await User.findByIdAndUpdate(userId, {
+            $pull: { retakePermissions: { testId } }
+        });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // Socket.io
 const onlineUsers = new Map();
 io.on('connection', (socket) => {
@@ -459,6 +489,20 @@ io.on('connection', (socket) => {
         io.emit('online_students', Array.from(onlineUsers.values()));
     });
 });
+
+// --- Online & All Students API (for Python Bot) ---
+app.get('/api/online-students', (req, res) => {
+    const students = Array.from(onlineUsers.values()).filter(u => u.role === 'student');
+    res.json({ success: true, students });
+});
+
+app.get('/api/bot/students', async (req, res) => {
+    try {
+        const students = await User.find({ role: 'student' }).select('firstName lastName phone telegramUsername');
+        res.json({ success: true, students });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+// --------------------------------------------
 
 // Keep-alive ping logic for Render (prevents sleeping)
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
