@@ -1707,8 +1707,8 @@
                     </div>
                 `;
 
-                // Randomize questions
-                currentTest.questions = shuffleArray([...currentTest.questions]);
+                // Randomize questions - REMOVED AS PER USER REQUEST
+                // currentTest.questions = shuffleArray([...currentTest.questions]);
                 currentTest.currentQuestionIndex = 0;
                 currentTest.answers = {};
 
@@ -1772,10 +1772,7 @@
                         `).join('')}
                     </div>
                 </div>
-                <div class="d-flex justify-content-between mt-4">
-                    <button class="btn btn-outline-secondary btn-lg px-4" onclick="prevQuestion()" ${index === 0 ? 'disabled' : ''}>
-                        <i class="fas fa-arrow-left"></i> Oldingisi
-                    </button>
+                <div class="d-flex justify-content-end mt-4">
                     ${index === currentTest.questions.length - 1 ?
                     `<button class="btn btn-success btn-lg px-5" onclick="submitTest()">
                             Tugatish <i class="fas fa-check-circle"></i>
@@ -1828,6 +1825,16 @@
                         testId: currentTest._id
                     });
                 }
+
+                // Auto-advance to next question
+                setTimeout(() => {
+                    if (currentTest.currentQuestionIndex < currentTest.questions.length - 1) {
+                        nextQuestion();
+                    } else {
+                        // If it's the last question, maybe give a hint or stay
+                        showAlert('Oxirgi savol. Testni yakunlashingiz mumkin.', 'info');
+                    }
+                }, 500);
             } catch (e) {
                 console.error('selectOption error:', e);
             }
@@ -1840,21 +1847,9 @@
         }
 
         function updateSkipNav() {
+            // Navigation hidden as per user request
             const skipNavContainer = document.getElementById('skipNavContainer');
-            if (!skipNavContainer) return;
-
-            let navHtml = '';
-            for (let i = 0; i < currentTest.questions.length; i++) {
-                const isAnswered = currentTest.answers[i] !== undefined;
-                const isActive = i === currentTest.currentQuestionIndex;
-                navHtml += `
-                    <button class="btn btn-sm ${isActive ? 'btn-primary' : (isAnswered ? 'btn-success' : 'btn-outline-secondary')}"
-                            onclick="goToQuestion(${i})">
-                        ${i + 1}
-                    </button>
-                `;
-            }
-            skipNavContainer.innerHTML = navHtml;
+            if (skipNavContainer) skipNavContainer.innerHTML = '';
         }
 
         function goToQuestion(index) {
@@ -1982,10 +1977,14 @@
         }
 
         function getBaho(percentage) {
-            if (percentage >= 90) return { grade: 5, text: "A'lo", color: "text-success" };
-            if (percentage >= 70) return { grade: 4, text: "Yaxshi", color: "text-primary" };
-            if (percentage >= 50) return { grade: 3, text: "Qoniqarli", color: "text-warning" };
-            return { grade: 2, text: "Yomon", color: "text-danger" };
+            // 25 ta savol uchun:
+            // 24-25 ta topsa -> 5 baho (96%-100%)
+            // 20-23 ta topsa -> 4 baho (80%-92%)
+            // 20 dan past bo'lsa -> 3 baho (<80%)
+
+            if (percentage >= 96) return { grade: 5, text: "A'lo", color: "text-success" };
+            if (percentage >= 80) return { grade: 4, text: "Yaxshi", color: "text-primary" };
+            return { grade: 3, text: "Qoniqarli", color: "text-warning" };
         }
 
         function showTestResult(result) {

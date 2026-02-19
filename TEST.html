@@ -1941,10 +1941,14 @@
         }
 
         function getBaho(percentage) {
-            if (percentage >= 90) return { grade: 5, text: "A'lo", color: "text-success" };
-            if (percentage >= 70) return { grade: 4, text: "Yaxshi", color: "text-primary" };
-            if (percentage >= 50) return { grade: 3, text: "Qoniqarli", color: "text-warning" };
-            return { grade: 2, text: "Yomon", color: "text-danger" };
+            // 25 ta savol uchun:
+            // 24-25 ta topsa -> 5 baho (96%-100%)
+            // 20-23 ta topsa -> 4 baho (80%-92%)
+            // 20 dan past bo'lsa -> 3 baho (<80%)
+
+            if (percentage >= 96) return { grade: 5, text: "A'lo", color: "text-success" };
+            if (percentage >= 80) return { grade: 4, text: "Yaxshi", color: "text-primary" };
+            return { grade: 3, text: "Qoniqarli", color: "text-warning" };
         }
 
         function showTestResult(result) {
