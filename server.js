@@ -61,6 +61,7 @@ const testSchema = new mongoose.Schema({
     startTime: { type: Date, default: Date.now },
     endTime: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // 30 kunlik muddat
     groupCodes: { type: [String], required: true }, // Changed from groupCode to groupCodes Array
+    displayCount: { type: Number, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
 });
@@ -316,14 +317,14 @@ app.get('/api/admin/students', async (req, res) => {
 
 app.post('/api/admin/tests/create', async (req, res) => {
     try {
-        const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
+        const { title, courseName, description, questions, timeLimit, groupCodes, displayCount } = req.body;
         const totalScore = questions.reduce((sum, q) => sum + (q.score || 5), 0);
         // Ensure groupCodes is always an array of trimmed strings
         const groups = Array.isArray(groupCodes)
             ? groupCodes
             : (groupCodes ? groupCodes.split(',').map(g => g.trim()).filter(g => g) : []);
 
-        const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups, createdBy: req.headers['user-id'] });
+        const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups, displayCount, createdBy: req.headers['user-id'] });
         await test.save();
         res.json({ success: true, testId: test._id });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -331,7 +332,7 @@ app.post('/api/admin/tests/create', async (req, res) => {
 
 app.post('/api/admin/tests/update/:id', async (req, res) => {
     try {
-        const { title, courseName, description, questions, timeLimit, groupCodes } = req.body;
+        const { title, courseName, description, questions, timeLimit, groupCodes, displayCount } = req.body;
         const totalScore = questions ? questions.reduce((sum, q) => sum + (q.score || 5), 0) : undefined;
 
         let groups = [];
@@ -340,6 +341,7 @@ app.post('/api/admin/tests/update/:id', async (req, res) => {
         }
 
         const updateData = { title, courseName, description, questions, timeLimit, totalScore };
+        if (displayCount !== undefined) updateData.displayCount = displayCount;
         if (groupCodes) updateData.groupCodes = groups;
 
         await Test.findByIdAndUpdate(req.params.id, updateData);
