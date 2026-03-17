@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-.git/
-.env
-.venv/
-forward_bot.py
-forward_bot.js
-package.json
