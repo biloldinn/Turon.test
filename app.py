@@ -1,4 +1,4 @@
-from flask import Flask, request, abort
+﻿from flask import Flask, request, abort
 import telebot
 from bot_instance import bot
 import handlers # Ensure handlers are registered
