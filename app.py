@@ -13,17 +13,21 @@ ads.start_ads()
 
 @app.route('/')
 def home():
+    logger.info("Home route accessed")
     return "Bot is alive and listening for Webhooks!"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Handle Telegram Webhook updates."""
+    logger.info(f"Webhook received! Content-Type: {request.headers.get('content-type')}")
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
+        logger.debug(f"Webhook payload: {json_string[:100]}...") # Log first 100 chars
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
         return '', 200
     else:
+        logger.warning(f"Invalid webhook request from {request.remote_addr}")
         abort(403)
 
 if __name__ == "__main__":
