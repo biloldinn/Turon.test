@@ -178,7 +178,7 @@ def register_handlers():
                 text = (f"📥 <b>{title}</b>\n"
                         f"━━━━━━━━━━━━━━━━━━\n"
                         f"👤 <b>Mijoz:</b> {profile}\n"
-                        f"📞 <b>Tel:</b> <code>+{state['phone']}</code>\n"
+                        f"📞 <b>Tel:</b> +{state['phone']}\n"
                         f"📍 <b>Qayerdan:</b> <code>{esc_from}</code>\n"
                         f"🏁 <b>Qayerga:</b> <code>{esc_to}</code>\n"
                         f"━━━━━━━━━━━━━━━━━━\n"

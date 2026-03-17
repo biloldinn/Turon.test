@@ -25,17 +25,19 @@ def handle_forwarding(message):
                 else:
                     profile_link = f"<a href='tg://user?id={user.id}'>{name} (Profil)</a>"
 
-            footer = f"\n\n👉 <b>Mijoz:</b> {profile_link}"
+            profile_link = f"<b>👤 Mijoz:</b> {profile_link}"
             
             # Forward based on content type
             if message.text:
-                new_text = html.escape(message.text) + footer
+                new_text = f"📢 <b>Yangi xabar</b>\n\n{html.escape(message.text)}\n\n{profile_link}"
                 bot.send_message(target, new_text, parse_mode="HTML")
             elif message.photo:
-                caption = html.escape(message.caption or "") + footer
+                caption = (html.escape(message.caption or ""))
+                caption = f"📸 <b>Rasm xabari</b>\n\n{caption}\n\n{profile_link}"
                 bot.send_photo(target, message.photo[-1].file_id, caption=caption, parse_mode="HTML")
             elif message.video:
-                caption = html.escape(message.caption or "") + footer
+                caption = (html.escape(message.caption or ""))
+                caption = f"🎥 <b>Video xabari</b>\n\n{caption}\n\n{profile_link}"
                 bot.send_video(target, message.video.file_id, caption=caption, parse_mode="HTML")
             else:
                 # For other types, just copy but add a notification message
