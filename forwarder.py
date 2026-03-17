@@ -15,15 +15,27 @@ def handle_forwarding(message):
 
     if str(message.chat.id) == str(source) or (message.chat.username and message.chat.username == str(source).replace('@', '')):
         try:
-            user = message.from_user
-            if not user:
-                profile_link = "Noma'lum"
-            else:
-                name = html.escape(user.first_name + (f" {user.last_name}" if user.last_name else ""))
-                if user.username:
-                    profile_link = f"<a href='https://t.me/{user.username}'>{name} (@{user.username})</a>"
+            # Handle user or channel/anonymous sender
+            sender = message.from_user
+            is_anonymous = sender and sender.id == 1087968824
+            
+            if (not sender or is_anonymous) and message.sender_chat:
+                # It's a channel or anonymous group admin
+                chat = message.sender_chat
+                name = html.escape(chat.title or "Guruh")
+                if chat.username:
+                    profile_link = f"<a href='https://t.me/{chat.username}'>{name} (@{chat.username})</a>"
                 else:
-                    profile_link = f"<a href='tg://user?id={user.id}'>{name} (Profil)</a>"
+                    profile_link = f"<b>{name}</b> (Kanal/Guruh)"
+            elif sender and not is_anonymous:
+                # It's a real user
+                name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
+                if sender.username:
+                    profile_link = f"<a href='https://t.me/{sender.username}'>{name} (@{sender.username})</a>"
+                else:
+                    profile_link = f"<a href='tg://user?id={sender.id}'>{name} (Profil)</a>"
+            else:
+                profile_link = "Noma'lum"
 
             profile_link = f"<b>👤 Mijoz:</b> {profile_link}"
             
