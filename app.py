@@ -1,5 +1,5 @@
-from flask import Flask
-import threading
+from flask import Flask, request, abort
+import telebot
 from bot_instance import bot
 import handlers # Ensure handlers are registered
 import ads
@@ -8,23 +8,25 @@ import os
 
 app = Flask(__name__)
 
+# Start the ad scheduler once on initialization
+ads.start_ads()
+
 @app.route('/')
 def home():
-    return "Bot is running with stable Polling structure!"
+    return "Bot is alive and listening for Webhooks!"
 
-def run_bot():
-    logger.info("Bot starting in polling mode...")
-    ads.start_ads()
-    try:
-        bot.infinity_polling(skip_pending=True)
-    except Exception as e:
-        logger.error(f"Bot polling crashed: {e}")
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    """Handle Telegram Webhook updates."""
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return '', 200
+    else:
+        abort(403)
 
 if __name__ == "__main__":
-    # Start bot in a separate thread
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    # Run Flask app
+    # Local development run
     port = int(os.environ.get("PORT", 7860))
     app.run(host="0.0.0.0", port=port)

@@ -17,5 +17,5 @@ COPY --chown=user . .
 # Expose the app port
 EXPOSE 7860
 
-# Start the bot
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:7860", "--log-file", "-"]
+# Botni ishga tushirish (Single worker to avoid duplicate background jobs)
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:7860", "--workers", "1", "--log-file", "-"]
