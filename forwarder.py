@@ -17,23 +17,27 @@ def handle_forwarding(message):
         try:
             # Handle user or channel/anonymous sender
             sender = message.from_user
-            is_anonymous = sender and sender.id == 1087968824
+            # Telegram Anonymous Bot ID is 1087968824
+            is_anonymous_admin = sender and sender.id == 1087968824
             
-            if (not sender or is_anonymous) and message.sender_chat:
-                # It's a channel or anonymous group admin
-                chat = message.sender_chat
-                name = html.escape(chat.title or "Guruh")
-                if chat.username:
-                    profile_link = f"<a href='https://t.me/{chat.username}'>{name} (@{chat.username})</a>"
-                else:
-                    profile_link = f"<b>{name}</b> (Kanal/Guruh)"
-            elif sender and not is_anonymous:
-                # It's a real user
+            # 1. Try to get real user first
+            if sender and not is_anonymous_admin:
                 name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
+                # Prefer tg://user?id over username for direct link reliability
+                profile_link = f"<a href='tg://user?id={sender.id}'>{name}</a>"
                 if sender.username:
-                    profile_link = f"<a href='https://t.me/{sender.username}'>{name} (@{sender.username})</a>"
+                    profile_link += f" (@{sender.username})"
+            
+            # 2. If anonymous admin or channel post
+            elif message.sender_chat:
+                chat = message.sender_chat
+                name = html.escape(chat.title or "Mijoz")
+                if chat.username:
+                    profile_link = f"<a href='https://t.me/{chat.username}'>{name}</a>"
                 else:
-                    profile_link = f"<a href='tg://user?id={sender.id}'>{name} (Profil)</a>"
+                    profile_link = f"<b>{name}</b>"
+            
+            # 3. Fallback
             else:
                 profile_link = "Noma'lum"
 
