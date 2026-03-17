@@ -37,24 +37,26 @@ def handle_forwarding(message):
             else:
                 profile_link = "Noma'lum"
 
-            profile_link = f"<b>👤 Mijoz:</b> {profile_link}"
+            # Format the profile link to be more prominent
+            profile_html = f"👤 <b>Mijoz:</b> {profile_link}"
             
             # Forward based on content type
             if message.text:
-                new_text = f"📢 <b>Yangi xabar</b>\n\n{html.escape(message.text)}\n\n{profile_link}"
+                new_text = f"📢 <b>Yangi xabar</b>\n\n{html.escape(message.text)}\n\n{profile_html}"
                 bot.send_message(target, new_text, parse_mode="HTML")
             elif message.photo:
-                caption = (html.escape(message.caption or ""))
-                caption = f"📸 <b>Rasm xabari</b>\n\n{caption}\n\n{profile_link}"
-                bot.send_photo(target, message.photo[-1].file_id, caption=caption, parse_mode="HTML")
+                caption = html.escape(message.caption or "")
+                new_caption = f"📸 <b>Rasm xabari</b>\n{caption}\n\n{profile_html}"
+                bot.send_photo(target, message.photo[-1].file_id, caption=new_caption, parse_mode="HTML")
             elif message.video:
-                caption = (html.escape(message.caption or ""))
-                caption = f"🎥 <b>Video xabari</b>\n\n{caption}\n\n{profile_link}"
-                bot.send_video(target, message.video.file_id, caption=caption, parse_mode="HTML")
+                caption = html.escape(message.caption or "")
+                new_caption = f"🎥 <b>Video xabari</b>\n{caption}\n\n{profile_html}"
+                bot.send_video(target, message.video.file_id, caption=new_caption, parse_mode="HTML")
             else:
-                # For other types, just copy but add a notification message
-                bot.copy_message(target, message.chat.id, message.message_id)
-                bot.send_message(target, f"☝️ Yuqodagi xabar egasi: {profile_link}", parse_mode="HTML")
+                # For other types, copy and send the profile info as a reply or separate message
+                copied = bot.copy_message(target, message.chat.id, message.message_id)
+                bot.send_message(target, f"☝️ Yuqoridagi xabar egasi:\n{profile_html}", 
+                               parse_mode="HTML", reply_to_message_id=copied.message_id)
 
             logger.info(f"Message {message.message_id} forwarded with profile link to {target}")
             
