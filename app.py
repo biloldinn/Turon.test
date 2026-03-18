@@ -12,16 +12,22 @@ app = Flask(__name__)
 # Start ad scheduler
 ads.start_ads()
 
-# Auto-set webhook if WEBHOOK_URL is provided
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+from config import config, TOKEN, WEBHOOK_URL
 if WEBHOOK_URL:
-    logger.info(f"Setting webhook to {WEBHOOK_URL}/webhook...")
-    bot.remove_webhook()
-    time.sleep(1)
-    bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
-    logger.info("Webhook set successfully.")
+    url_to_set = WEBHOOK_URL.strip().rstrip('/')
+    if not url_to_set.startswith("http"):
+        url_to_set = f"https://{url_to_set}"
+        
+    logger.info(f"Setting webhook to {url_to_set}/webhook...")
+    try:
+        bot.remove_webhook()
+        time.sleep(1)
+        bot.set_webhook(url=f"{url_to_set}/webhook")
+        logger.info("Webhook set successfully.")
+    except Exception as e:
+        logger.error(f"Failed to set webhook: {e}")
 else:
-    logger.warning("WEBHOOK_URL not found in environment. Skipping auto-webhook setup.")
+    logger.warning("WEBHOOK_URL not found in config. Skipping auto-webhook setup.")
 
 @app.route('/')
 @app.route('/health')
