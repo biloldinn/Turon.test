@@ -9,11 +9,14 @@ if not TOKEN:
 bot = telebot.TeleBot(TOKEN, parse_mode=None)
 
 # Set bot commands
-bot.set_my_commands([
-    telebot.types.BotCommand("start", "Botni ishga tushirish"),
-    telebot.types.BotCommand("admin", "Admin panel"),
-    telebot.types.BotCommand("status", "Bot holatini ko'rish"),
-    telebot.types.BotCommand("setgroups", "Guruhlarni sozlash")
-])
+try:
+    bot.set_my_commands([
+        telebot.types.BotCommand("start", "Botni ishga tushirish"),
+        telebot.types.BotCommand("admin", "Admin panel"),
+        telebot.types.BotCommand("status", "Bot holatini ko'rish"),
+        telebot.types.BotCommand("setgroups", "Guruhlarni sozlash")
+    ])
+except Exception as e:
+    logger.error(f"Failed to set bot commands: {e}")
 
 logger.info("Bot instance initialized.")

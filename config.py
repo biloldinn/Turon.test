@@ -25,9 +25,14 @@ def load_config():
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                return {**DEFAULT_CONFIG, **json.load(f)}
+                content = f.read().strip()
+                if not content:
+                    logger.warning("bot_config.json is empty. Using defaults.")
+                    return DEFAULT_CONFIG.copy()
+                data = json.loads(content)
+                return {**DEFAULT_CONFIG, **data}
         except Exception as e:
-            logger.error(f"Error loading config: {e}")
+            logger.error(f"Error loading config: {e}. Using defaults.")
     return DEFAULT_CONFIG.copy()
 
 def save_config(config):

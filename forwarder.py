@@ -1,4 +1,3 @@
-import asyncio
 import time
 from bot_instance import bot
 from config import config
