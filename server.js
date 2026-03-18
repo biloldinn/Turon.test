@@ -216,7 +216,24 @@ app.get('/api/results/student', async (req, res) => {
 
 app.get('/api/tests/take/:testId', async (req, res) => {
     try {
+        const userId = req.headers['user-id'];
         const test = await Test.findById(req.params.testId);
+        if (!test) return res.status(404).json({ success: false, error: 'Test topilmadi' });
+
+        // Check availability
+        const now = new Date();
+        if (test.startTime && now < test.startTime) return res.status(403).json({ success: false, error: 'Test hali boshlanmagan' });
+        if (test.endTime && now > test.endTime) return res.status(403).json({ success: false, error: 'Test muddati o\'tgan' });
+
+        // Check if already taken
+        const result = await Result.findOne({ userId, testId: test._id });
+        const user = await User.findById(userId);
+        const hasRetake = user?.retakePermissions?.some(rp => rp.testId.toString() === test._id.toString());
+
+        if (result && !hasRetake) {
+            return res.status(403).json({ success: false, error: 'Siz bu testni topshirib bo\'lgansiz' });
+        }
+
         res.json({ success: true, test });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
@@ -255,6 +272,16 @@ app.post('/api/tests/submit', async (req, res) => {
         const userId = req.headers['user-id'];
         const test = await Test.findById(testId);
         if (!test) return res.status(404).json({ success: false, error: 'Test topilmadi' });
+
+        // Enforce expiration on submission as well
+        const now = new Date();
+        if (test.endTime && now > test.endTime) {
+            // Allow a small grace period (e.g. 2 minutes) for submissions that started just before expiration
+            const gracePeriod = 2 * 60 * 1000;
+            if (now.getTime() - test.endTime.getTime() > gracePeriod) {
+                return res.status(403).json({ success: false, error: 'Test muddati tugadi, javoblar qabul qilinmadi' });
+            }
+        }
 
         let score = 0;
         let correctCount = 0;

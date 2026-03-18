@@ -1178,7 +1178,9 @@
         }
 
         function formatDate(dateString) {
+            if (!dateString) return '---';
             const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '---';
             return date.toLocaleDateString('uz-UZ') + ' ' + date.toLocaleTimeString('uz-UZ', {
                 hour: '2-digit',
                 minute: '2-digit'
@@ -2012,15 +2014,10 @@
         }
 
         function getBaho(percentage) {
-            // Updated dynamic evaluation
-            // >= 96% -> 5 baho (A'lo)
-            // >= 92% -> 4 baho (Namunali)
-            // >= 76% -> 3 baho (Qoniqarli)
-            // < 76% -> Qoniqarsiz
-
-            if (percentage >= 100) return { grade: 5, text: "A'lo", color: "text-success" };
-            if (percentage >= 92) return { grade: 4, text: "Namunali", color: "text-primary" };
-            if (percentage >= 76) return { grade: 3, text: "Qoniqarli", color: "text-warning" };
+            // Updated evaluation matching common standards
+            if (percentage >= 90) return { grade: 5, text: "A'lo", color: "text-success" };
+            if (percentage >= 80) return { grade: 4, text: "Namunali", color: "text-primary" };
+            if (percentage >= 60) return { grade: 3, text: "Qoniqarli", color: "text-warning" };
             return { grade: 2, text: "Qoniqarsiz", color: "text-danger" };
         }
 
