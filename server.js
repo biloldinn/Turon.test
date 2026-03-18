@@ -170,7 +170,13 @@ app.post('/api/register', async (req, res) => {
 // Student
 app.get('/api/tests/student/:groupCode', async (req, res) => {
     try {
-        const tests = await Test.find({ groupCodes: req.params.groupCode }).lean().sort({ createdAt: -1 });
+        const groupCode = req.params.groupCode;
+        const tests = await Test.find({
+            $or: [
+                { groupCodes: groupCode },
+                { groupCode: groupCode }
+            ]
+        }).lean().sort({ createdAt: -1 });
         const userId = req.headers['user-id'];
         const user = await User.findById(userId);
 
@@ -324,7 +330,22 @@ app.post('/api/admin/tests/create', async (req, res) => {
             ? groupCodes
             : (groupCodes ? groupCodes.split(',').map(g => g.trim()).filter(g => g) : []);
 
-        const test = new Test({ title, courseName, description, questions, timeLimit, totalScore, groupCodes: groups, displayCount, createdBy: req.headers['user-id'] });
+        const startTime = req.body.startTime ? new Date(req.body.startTime) : undefined;
+        const endTime = req.body.endTime ? new Date(req.body.endTime) : undefined;
+
+        const test = new Test({
+            title,
+            courseName,
+            description,
+            questions,
+            timeLimit,
+            totalScore,
+            groupCodes: groups,
+            displayCount,
+            startTime,
+            endTime,
+            createdBy: req.headers['user-id']
+        });
         await test.save();
         res.json({ success: true, testId: test._id });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -343,6 +364,13 @@ app.post('/api/admin/tests/update/:id', async (req, res) => {
         const updateData = { title, courseName, description, questions, timeLimit, totalScore };
         if (displayCount !== undefined) updateData.displayCount = displayCount;
         if (groupCodes) updateData.groupCodes = groups;
+
+        if (req.body.startTime !== undefined) {
+            updateData.startTime = req.body.startTime ? new Date(req.body.startTime) : null;
+        }
+        if (req.body.endTime !== undefined) {
+            updateData.endTime = req.body.endTime ? new Date(req.body.endTime) : null;
+        }
 
         await Test.findByIdAndUpdate(req.params.id, updateData);
         res.json({ success: true });

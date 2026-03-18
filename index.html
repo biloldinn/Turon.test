@@ -967,6 +967,18 @@
                             <small class="text-muted">Bo'sh qoldirsangiz, barcha savollar chiqadi.</small>
                         </div>
                     </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Boshlanish vaqti</label>
+                            <input type="datetime-local" class="form-control" id="manualStartTime">
+                            <small class="text-muted">Belgilanganda, test shu vaqtdan boshlanadi.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tugash vaqti</label>
+                            <input type="datetime-local" class="form-control" id="manualEndTime">
+                            <small class="text-muted">Bundan keyin test "Muddati o'tgan" bo'ladi.</small>
+                        </div>
+                    </div>
                     <hr>
                     <h5>Savollar</h5>
                     <div id="manualQuestionsContainer"></div>
@@ -1553,17 +1565,32 @@
 
                 data.tests.forEach(test => {
                     const now = new Date();
-                    const startTime = new Date(test.startTime);
-                    const endTime = new Date(test.endTime);
-                    const isAvailable = now >= startTime && now <= endTime;
+                    const startTime = test.startTime ? new Date(test.startTime) : null;
+                    const endTime = test.endTime ? new Date(test.endTime) : null;
+
+                    let isAvailable = true;
+                    let isPending = false;
+                    let isExpired = false;
+
+                    if (startTime && now < startTime) {
+                        isAvailable = false;
+                        isPending = true;
+                    }
+
+                    // Only mark as expired if endTime is a VALID date AND it is in the past
+                    if (endTime && !isNaN(endTime.getTime()) && now > endTime) {
+                        isAvailable = false;
+                        isExpired = true;
+                    }
+
                     const isAITest = test.questions.some(q => q.createdByAI);
 
                     html += `
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="test-card h-100">
                                 <div class="position-absolute top-0 end-0 m-2">
-                                    <span class="badge ${test.isTaken ? 'bg-secondary' : !isAvailable ? (now < startTime ? 'bg-warning' : 'bg-danger') : 'bg-success'}">
-                                        ${test.isTaken ? '✓ Topshirilgan' : !isAvailable ? (now < startTime ? '⏳ Kutilmoqda' : '❌ Muddati o\'tgan') : '✅ Mavjud'}
+                                    <span class="badge ${test.isTaken ? 'bg-secondary' : !isAvailable ? (isPending ? 'bg-warning' : 'bg-danger') : 'bg-success'}">
+                                        ${test.isTaken ? '✓ Topshirilgan' : !isAvailable ? (isPending ? '⏳ Kutilmoqda' : '❌ Muddati o\'tgan') : '✅ Mavjud'}
                                     </span>
                                 </div>
                                 
@@ -1600,18 +1627,18 @@
                                             </button>
                                             <div class="alert alert-warning py-1 px-2 small mb-0 mt-2">
                                                 <i class="fas fa-info-circle"></i> Senga ushbu testni qayta topshirish imkoniyati berildi!
-                                            </div>` :
+                                            </button>` :
                             test.isTaken ?
                                 `<button class="btn btn-secondary w-100" disabled>
-                                                <i class="fas fa-check-circle"></i> Topshirilgan
-                                            </button>` :
+                                                    <i class="fas fa-check-circle"></i> Topshirilgan
+                                                </button>` :
                                 !isAvailable ?
                                     `<button class="btn btn-outline-secondary w-100" disabled>
-                                                    <i class="fas fa-lock"></i> ${now < startTime ? 'Hali boshlanmadi' : 'Muddati o\'tgan'}
-                                                </button>` :
+                                                        <i class="fas fa-lock"></i> ${isPending ? 'Hali boshlanmadi' : 'Muddati o\'tgan'}
+                                                    </button>` :
                                     `<button class="btn btn-primary w-100" onclick="startTest('${test._id}')">
-                                                    <i class="fas fa-play-circle"></i> Testni boshlash
-                                                </button>`
+                                                        <i class="fas fa-play-circle"></i> Testni boshlash
+                                                    </button>`
                         }
                                     </div>
                                 </div>
@@ -2793,6 +2820,13 @@
 
         function showManualTestCreator() {
             const modal = new bootstrap.Modal(document.getElementById('manualTestModal'));
+            document.getElementById('manualTestModal').dataset.testId = '';
+            document.getElementById('manualTestTitle').value = '';
+            document.getElementById('manualCourseName').value = '';
+            document.getElementById('manualGroupCode').value = '';
+            document.getElementById('manualTimeLimit').value = '30';
+            document.getElementById('manualStartTime').value = '';
+            document.getElementById('manualEndTime').value = '';
             document.getElementById('manualQuestionsContainer').innerHTML = '';
             addManualQuestion();
             modal.show();
@@ -2836,6 +2870,12 @@
             const courseName = document.getElementById('manualCourseName').value;
             const groupCodeStr = document.getElementById('manualGroupCode').value;
             const timeLimit = document.getElementById('manualTimeLimit').value;
+            let startTime = document.getElementById('manualStartTime').value;
+            let endTime = document.getElementById('manualEndTime').value;
+
+            // Convert to UTC strings if they exist
+            startTime = startTime ? new Date(startTime).toISOString() : null;
+            endTime = endTime ? new Date(endTime).toISOString() : null;
             const testId = document.getElementById('manualTestModal').dataset.testId;
 
             const groupCodes = groupCodeStr.split(',').map(g => g.trim()).filter(g => g);
@@ -2855,7 +2895,7 @@
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
-                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCodes })
+                    body: JSON.stringify({ title, courseName, questions, timeLimit, groupCodes, startTime, endTime })
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -2881,6 +2921,23 @@
                     document.getElementById('manualCourseName').value = test.courseName;
                     document.getElementById('manualGroupCode').value = (test.groupCodes || [test.groupCode]).join(', ');
                     document.getElementById('manualTimeLimit').value = test.timeLimit;
+
+                    // Support for dates
+                    if (test.startTime) {
+                        const sDate = new Date(test.startTime);
+                        sDate.setMinutes(sDate.getMinutes() - sDate.getTimezoneOffset());
+                        document.getElementById('manualStartTime').value = sDate.toISOString().slice(0, 16);
+                    } else {
+                        document.getElementById('manualStartTime').value = '';
+                    }
+
+                    if (test.endTime) {
+                        const eDate = new Date(test.endTime);
+                        eDate.setMinutes(eDate.getMinutes() - eDate.getTimezoneOffset());
+                        document.getElementById('manualEndTime').value = eDate.toISOString().slice(0, 16);
+                    } else {
+                        document.getElementById('manualEndTime').value = '';
+                    }
 
                     const container = document.getElementById('manualQuestionsContainer');
                     container.innerHTML = '';
