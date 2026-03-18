@@ -162,7 +162,12 @@ def register_handlers():
             if target:
                 title = "🚖 #YANGI_TAKSI" if state['type'] == 'Taksi' else "📦 #YANGI_POCHTA"
                 esc_name = html.escape(state['name'])
-                profile = f"<a href='tg://user?id={cid}'>{esc_name}</a>"
+                # Get user info from the message context
+                user = message.from_user
+                if user.username:
+                    profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
+                else:
+                    profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
                 
                 from datetime import datetime, timedelta
                 uz_time = (datetime.utcnow() + timedelta(hours=5)).strftime('%H:%M:%S')
