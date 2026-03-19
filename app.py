@@ -1,11 +1,11 @@
-﻿from flask import Flask, request, abort
-import telebot
+﻿import telebot
 from bot_instance import bot
-import handlers # Register all bot handlers
+import handlers  # Register all bot handlers
 import ads
 from logger import logger
 import os
 import threading
+from flask import Flask
 
 app = Flask(__name__)
 
@@ -19,22 +19,26 @@ try:
 except Exception as e:
     logger.error(f"Could not remove webhook: {e}")
 
-def run_bot():
-    logger.info("Bot is now polling for messages in the background...")
-    bot.infinity_polling(skip_pending=True)
-
-# Start polling in a background thread
-bot_thread = threading.Thread(target=run_bot, daemon=True)
-bot_thread.start()
-
+# Health check endpoint for Railway monitoring
 @app.route('/')
 @app.route('/health')
 def health_check():
-    """Health check endpoint for Railway/Platform monitoring."""
-    logger.info("Health check accessed.")
-    return "Bot is actively running in Local Polling mode (Background Thread)!", 200
+    return "Bot is active and polling!", 200
+
+def run_flask():
+    """Run Flask in a background thread for health checks."""
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
+
+def main():
+    # Start Flask health check server in background
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("Health check server started in background.")
+
+    # Run bot polling in the MAIN thread (this keeps the process alive)
+    logger.info("Bot is now polling for messages...")
+    bot.infinity_polling(skip_pending=True)
 
 if __name__ == "__main__":
-    # Local dev port or Railway dynamic port
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    main()
