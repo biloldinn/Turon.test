@@ -1580,10 +1580,10 @@
                     }
 
                     // Only mark as expired if endTime is a VALID date AND it is in the past
-                    if (endTime && !isNaN(endTime.getTime()) && now > endTime) {
-                        isAvailable = false;
-                        isExpired = true;
-                    }
+                    // if (endTime && !isNaN(endTime.getTime()) && now > endTime) {
+                    //    isAvailable = false;
+                    //    isExpired = true;
+                    // }
 
                     const isAITest = test.questions.some(q => q.createdByAI);
 

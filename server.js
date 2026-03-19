@@ -58,8 +58,8 @@ const testSchema = new mongoose.Schema({
     questions: { type: Array, required: true },
     timeLimit: { type: Number, default: 30 },
     totalScore: { type: Number, default: 100 },
-    startTime: { type: Date, default: Date.now },
-    endTime: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // 30 kunlik muddat
+    startTime: { type: Date },
+    endTime: { type: Date },
     groupCodes: { type: [String], required: true }, // Changed from groupCode to groupCodes Array
     displayCount: { type: Number, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -223,7 +223,7 @@ app.get('/api/tests/take/:testId', async (req, res) => {
         // Check availability
         const now = new Date();
         if (test.startTime && now < test.startTime) return res.status(403).json({ success: false, error: 'Test hali boshlanmagan' });
-        if (test.endTime && now > test.endTime) return res.status(403).json({ success: false, error: 'Test muddati o\'tgan' });
+        // if (test.endTime && now > test.endTime) return res.status(403).json({ success: false, error: 'Test muddati o\'tgan' });
 
         // Check if already taken
         const result = await Result.findOne({ userId, testId: test._id });
@@ -275,13 +275,13 @@ app.post('/api/tests/submit', async (req, res) => {
 
         // Enforce expiration on submission as well
         const now = new Date();
-        if (test.endTime && now > test.endTime) {
-            // Allow a small grace period (e.g. 2 minutes) for submissions that started just before expiration
-            const gracePeriod = 2 * 60 * 1000;
-            if (now.getTime() - test.endTime.getTime() > gracePeriod) {
-                return res.status(403).json({ success: false, error: 'Test muddati tugadi, javoblar qabul qilinmadi' });
-            }
-        }
+        // if (test.endTime && now > test.endTime) {
+        //     // Allow a small grace period (e.g. 2 minutes) for submissions that started just before expiration
+        //     const gracePeriod = 2 * 60 * 1000;
+        //     if (now.getTime() - test.endTime.getTime() > gracePeriod) {
+        //         return res.status(403).json({ success: false, error: 'Test muddati tugadi, javoblar qabul qilinmadi' });
+        //     }
+        // }
 
         let score = 0;
         let correctCount = 0;
@@ -357,8 +357,8 @@ app.post('/api/admin/tests/create', async (req, res) => {
             ? groupCodes
             : (groupCodes ? groupCodes.split(',').map(g => g.trim()).filter(g => g) : []);
 
-        const startTime = req.body.startTime ? new Date(req.body.startTime) : undefined;
-        const endTime = req.body.endTime ? new Date(req.body.endTime) : undefined;
+        const startTime = req.body.startTime ? new Date(req.body.startTime) : null;
+        const endTime = req.body.endTime ? new Date(req.body.endTime) : null;
 
         const test = new Test({
             title,
@@ -414,6 +414,14 @@ app.post('/api/admin/tests/:id/groups', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// Maintenance: Clear all deadlines
+app.post('/api/admin/maintenance/clear-deadlines', async (req, res) => {
+    try {
+        await Test.updateMany({}, { $set: { startTime: null, endTime: null } });
+        res.json({ success: true, message: "Barcha test muddati tozalandi" });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.delete('/api/admin/tests/delete/:id', async (req, res) => {
     try {
         await Test.findByIdAndDelete(req.params.id);
@@ -426,7 +434,7 @@ app.delete('/api/admin/tests/delete/:id', async (req, res) => {
 app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res) => {
     try {
         const { topic, count, difficulty, gradeLevel, courseName } = req.body;
-        const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.AI_API_KEY;
+        const OPENROUTER_API_KEY = "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";
         let contextText = topic || "";
 
         // If file is uploaded, extract text
@@ -437,8 +445,8 @@ app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res)
             fs.unlinkSync(req.file.path);
         }
 
-        if (!GEMINI_API_KEY) {
-            return res.status(400).json({ success: false, error: "Gemini API key topilmadi (GOOGLE_API_KEY)" });
+        if (!OPENROUTER_API_KEY) {
+            return res.status(400).json({ success: false, error: "OpenRouter API key topilmadi" });
         }
 
         const prompt = `
@@ -458,11 +466,18 @@ app.post('/api/admin/tests/generate-ai', upload.single('file'), async (req, res)
             3. Javob formati: {"questions": [{"text": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "to'g'ri variant matni", "score": 5}]}
         `;
 
-        const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
-            contents: [{ parts: [{ text: prompt }] }]
+        const response = await axios.post(`https://openrouter.ai/api/v1/chat/completions`, {
+            model: "google/gemini-2.0-flash-001",
+            messages: [{ role: "user", content: prompt }]
+        }, {
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "HTTP-Referer": "https://turon-test.uz",
+                "X-Title": "Turon Test"
+            }
         });
 
-        let content = response.data.candidates[0].content.parts[0].text;
+        let content = response.data.choices[0].message.content;
 
         // Clean markdown JSON formatting if present
         content = content.replace(/```json|```/g, '').trim();
