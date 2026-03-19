@@ -5,9 +5,15 @@ from logger import logger
 
 load_dotenv()
 
-TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8247612744:AAHTKhj466aaqBbKHXefg6CD5v-abUMerv4'
-ADMIN_ID = int(os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or '534958748')
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot-production.up.railway.app'
+TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN')
+ADMIN_ID = int(os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or 0)
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or ''
+
+if not TOKEN:
+    raise ValueError("BOT_TOKEN environment variable is not set!")
+
+if not ADMIN_ID:
+    raise ValueError("ADMIN_ID environment variable is not set!")
 
 CONFIG_FILE = 'bot_config.json'
 

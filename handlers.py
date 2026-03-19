@@ -9,18 +9,23 @@ from datetime import datetime, timedelta
 
 user_states = {}
 
-def is_admin(message):
-    return str(message.from_user.id) == str(ADMIN_ID)
+def is_admin(message_or_call):
+    """Works for both Message and CallbackQuery objects."""
+    if hasattr(message_or_call, 'from_user'):
+        uid = message_or_call.from_user.id
+    else:
+        uid = message_or_call.id
+    return str(uid) == str(ADMIN_ID)
 
 def register_handlers():
-    
+
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.row(types.KeyboardButton("🚖 Taksi chaqirish"), types.KeyboardButton("📦 Pochta jo'natish"))
-        
+
         welcome_text = (
-            f"🌟 <b>Assalomu alaykum, {message.from_user.first_name}!</b>\n\n"
+            f"🌟 <b>Assalomu alaykum, {html.escape(message.from_user.first_name)}!</b>\n\n"
             "Bizning xizmatimizdan foydalanganingiz uchun rahmat. "
             "Sizga qanday yordam bera olamiz? Quyidagi tugmalardan birini tanlang:"
         )
@@ -31,7 +36,7 @@ def register_handlers():
         s = config.get('source_group') or '<i>Sozlanmagan</i>'
         d = config.get('destination_group') or '<i>Sozlanmagan</i>'
         ad_g = config.get('ad_target_group') or s
-        
+
         status_text = (
             f"📊 <b>Bot Holati</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
@@ -47,9 +52,9 @@ def register_handlers():
 
     @bot.message_handler(commands=['setgroups'])
     def set_groups_start(message):
-        if not is_admin(message): return
-        
-        bot.send_message(message.chat.id, 
+        if not is_admin(message):
+            return
+        bot.send_message(message.chat.id,
             "📤 <b>Manba guruh/kanal ID sini yuboring:</b>\n"
             "(Masalan: -100123456789 yoki @username)", parse_mode="HTML")
         user_states[message.chat.id] = 'setting_source'
@@ -58,14 +63,14 @@ def register_handlers():
     def admin_panel(message):
         status_ad = "🟢 YOQILGAN" if config.get('is_ad_active') else "🔴 O'CHIRILGAN"
         status_fwd = "🟢 YOQILGAN" if config.get('is_forwarding_active') else "🔴 O'CHIRILGAN"
-        
-        ad_text_preview = (config.get('ad_text')[:40] + "...") if config.get('ad_text') else "Mavjud emas"
-        
+
+        ad_text_preview = (config.get('ad_text', '')[:40] + "...") if config.get('ad_text') else "Mavjud emas"
+
         panel_text = (
             f"🛠 <b>Admin Panel</b>\n\n"
             f"📢 <b>Reklama:</b> {status_ad}\n"
             f"⏳ <b>Interval:</b> {config.get('ad_interval_minutes')} min\n"
-            f"📝 <b>Matn:</b> <i>{ad_text_preview}</i>\n"
+            f"📝 <b>Matn:</b> <i>{html.escape(ad_text_preview)}</i>\n"
             f"🖼 <b>Rasm:</b> {'✅ Bor' if config.get('ad_photo') else '❌ Yo`q'}\n"
             f"🔄 <b>Forward:</b> {status_fwd}"
         )
@@ -83,15 +88,22 @@ def register_handlers():
             types.InlineKeyboardButton("🚀 Hozir yuborish", callback_data="admin_ad_now")
         )
         markup.add(
-            types.InlineKeyboardButton(f"{'🔴 Reklamani OFF' if config.get('is_ad_active') else '🟢 Reklamani ON'}", callback_data="admin_ad_toggle"),
-            types.InlineKeyboardButton(f"{'🔴 Forwardni OFF' if config.get('is_forwarding_active') else '🟢 Forwardni ON'}", callback_data="admin_fwd_toggle")
+            types.InlineKeyboardButton(
+                f"{'🔴 Reklamani OFF' if config.get('is_ad_active') else '🟢 Reklamani ON'}",
+                callback_data="admin_ad_toggle"
+            ),
+            types.InlineKeyboardButton(
+                f"{'🔴 Forwardni OFF' if config.get('is_forwarding_active') else '🟢 Forwardni ON'}",
+                callback_data="admin_fwd_toggle"
+            )
         )
         bot.send_message(message.chat.id, panel_text, reply_markup=markup, parse_mode="HTML")
 
     @bot.callback_query_handler(func=lambda c: c.data.startswith('admin_'))
     def admin_callbacks(call):
         cid = call.message.chat.id
-        if not is_admin(call):
+        # FIX: is_admin must check call.from_user, not call.message (which is the bot's message)
+        if str(call.from_user.id) != str(ADMIN_ID):
             bot.answer_callback_query(call.id, "Siz admin emassiz!")
             return
 
@@ -110,26 +122,32 @@ def register_handlers():
         elif call.data == "admin_ad_now":
             ads.send_ad()
             bot.answer_callback_query(call.id, "✅ Reklama yuborildi!")
+            return
         elif call.data == "admin_ad_toggle":
             config['is_ad_active'] = not config['is_ad_active']
             save_config(config)
             ads.reschedule_ads()
             bot.answer_callback_query(call.id, "Holat o'zgardi")
             admin_panel(call.message)
+            return
         elif call.data == "admin_fwd_toggle":
             config['is_forwarding_active'] = not config['is_forwarding_active']
             save_config(config)
             bot.answer_callback_query(call.id, "Forwarding holati o'zgardi")
             admin_panel(call.message)
+            return
+
+        bot.answer_callback_query(call.id)
 
     @bot.message_handler(func=lambda m: m.text in ["🚖 Taksi chaqirish", "📦 Pochta jo'natish"])
     def start_order(message):
         cid = message.chat.id
-        user_states[cid] = {'type': 'Taksi' if "Taksi" in message.text else 'Pochta', 'step': 'name'}
-        
+        order_type = 'Taksi' if "Taksi" in message.text else 'Pochta'
+        user_states[cid] = {'type': order_type, 'step': 'name'}
+
         cancel_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(types.KeyboardButton("❌ Bekor qilish"))
-        
+
         bot.send_message(cid, "📝 <b>Ismingizni yozing:</b>", reply_markup=cancel_markup, parse_mode="HTML")
 
     @bot.message_handler(func=lambda m: m.chat.id in user_states and isinstance(user_states[m.chat.id], dict))
@@ -137,94 +155,148 @@ def register_handlers():
         cid = message.chat.id
         state = user_states[cid]
         step = state.get('step')
-        
+
         if message.text == "❌ Bekor qilish":
             del user_states[cid]
             start(message)
             return
 
         if step == 'name':
-            state['name'] = message.text
+            state['name'] = html.escape(message.text)
             state['step'] = 'phone'
             mk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             mk.add(types.KeyboardButton("📱 Raqamni yuborish", request_contact=True))
+            mk.add(types.KeyboardButton("❌ Bekor qilish"))
             bot.send_message(cid, "📞 <b>Telefon raqamingizni yuboring:</b>", reply_markup=mk, parse_mode="HTML")
+
         elif step == 'phone':
-            state['phone'] = message.text
+            # FIX: validate manually entered phone number
+            phone = message.text.strip()
+            if not phone.replace('+', '').replace(' ', '').isdigit() or len(phone) < 7:
+                bot.send_message(cid, "⚠️ Iltimos, to'g'ri telefon raqam kiriting yoki tugmani bosing.")
+                return
+            state['phone'] = phone
             state['step'] = 'from'
             bot.send_message(cid, "📍 <b>Qayerdan?</b> (Manzilni yozing):", parse_mode="HTML")
+
         elif step == 'from':
             state['from'] = message.text
             state['step'] = 'to'
             bot.send_message(cid, "🏁 <b>Qayerga?</b> (Manzilni yozing):", parse_mode="HTML")
+
         elif step == 'to':
             state['to'] = message.text
+            state['step'] = 'comment'
+            mk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            mk.add(types.KeyboardButton("⏭ O'tkazib yuborish"))
+            mk.add(types.KeyboardButton("❌ Bekor qilish"))
+            bot.send_message(cid,
+                "💬 <b>Qo'shimcha izoh yoki narx so'rash? (ixtiyoriy)</b>\n"
+                "Masalan: 2 kishi, yo'lakay to'xtash, narx so'rash va h.k.",
+                reply_markup=mk, parse_mode="HTML")
+
+        elif step == 'comment':
+            state['comment'] = '' if message.text == "⏭ O'tkazib yuborish" else message.text
             state['step'] = 'location'
             mk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             mk.add(types.KeyboardButton("📍 Lokatsiyani yuborish", request_location=True))
             mk.add(types.KeyboardButton("❌ Bekor qilish"))
-            bot.send_message(cid, "🗺 <b>Lokatsiyangizni yuboring:</b>\nHech bo'lmasa yaqin atrofdagi nuqtani tanlang.", reply_markup=mk, parse_mode="HTML")
+            bot.send_message(cid,
+                "🗺 <b>Lokatsiyangizni yuboring:</b>\n"
+                "Hech bo'lmasa yaqin atrofdagi nuqtani tanlang.",
+                reply_markup=mk, parse_mode="HTML")
 
     @bot.message_handler(content_types=['contact'])
     def handle_contact(message):
         cid = message.chat.id
         if cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'phone':
-            user_states[cid]['phone'] = message.contact.phone_number
+            phone = message.contact.phone_number
+            # Normalize: ensure it starts with +
+            if phone and not phone.startswith('+'):
+                phone = '+' + phone
+            user_states[cid]['phone'] = phone
             user_states[cid]['step'] = 'from'
             bot.send_message(cid, "📍 <b>Qayerdan?</b>", parse_mode="HTML")
 
     @bot.message_handler(content_types=['location'])
     def handle_location(message):
         cid = message.chat.id
-        if cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'location':
-            state = user_states[cid]
-            state['lat'] = message.location.latitude
-            state['lon'] = message.location.longitude
-            
-            target = config.get('destination_group')
-            if target:
-                title = "🚖 #YANGI_TAKSI" if state['type'] == 'Taksi' else "📦 #YANGI_POCHTA"
-                esc_name = html.escape(state['name'])
-                user = message.from_user
-                
-                if user.username:
-                    profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
-                else:
-                    profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
-                
-                uz_time = (datetime.utcnow() + timedelta(hours=5)).strftime('%H:%M:%S')
-                
-                text = (f"📥 <b>{title}</b>\n"
-                        f"━━━━━━━━━━━━━━━━━━\n"
-                        f"👤 <b>Mijoz:</b> {profile}\n"
-                        f"📞 <b>Tel:</b> +{state['phone']}\n"
-                        f"📍 <b>Qayerdan:</b> <code>{html.escape(state['from'])}</code>\n"
-                        f"🏁 <b>Qayerga:</b> <code>{html.escape(state['to'])}</code>\n"
-                        f"━━━━━━━━━━━━━━━━━━\n"
-                        f"🕒 <b>Vaqt:</b> <code>{uz_time}</code>")
-                
-                mk_group = types.InlineKeyboardMarkup()
-                mk_group.add(
-                    types.InlineKeyboardButton("✅ Qabul qilish", callback_data=f"order_accept_{cid}"),
-                    types.InlineKeyboardButton("❌ Rad etish", callback_data=f"order_reject_{cid}")
-                )
+        if not (cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'location'):
+            return
 
-                m = bot.send_message(target, text, parse_mode="HTML", reply_markup=mk_group)
-                bot.send_location(target, state['lat'], state['lon'], reply_to_message_id=m.message_id)
-                bot.send_message(cid, "✅ <b>Buyurtmangiz yuborildi!</b>\nTez orada haydovchilar bog'lanishadi.", parse_mode="HTML")
-            else:
-                bot.send_message(cid, "❌ Xatolik: Guruh sozlanmagan. Iltimos adminga xabar bering.")
-            
+        state = user_states[cid]
+        state['lat'] = message.location.latitude
+        state['lon'] = message.location.longitude
+
+        target = config.get('destination_group')
+        if not target:
+            bot.send_message(cid, "❌ Xatolik: Guruh sozlanmagan. Iltimos adminga xabar bering.")
             del user_states[cid]
             start(message)
+            return
+
+        title = "🚖 #YANGI_TAKSI" if state['type'] == 'Taksi' else "📦 #YANGI_POCHTA"
+        user = message.from_user
+        esc_name = html.escape(state['name'])
+
+        if user.username:
+            profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
+        else:
+            profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
+
+        uz_time = (datetime.utcnow() + timedelta(hours=5)).strftime('%H:%M:%S')
+
+        # Build comment line
+        comment_line = ""
+        if state.get('comment'):
+            comment_line = f"\n💬 <b>Izoh:</b> <i>{html.escape(state['comment'])}</i>"
+
+        text = (
+            f"📥 <b>{title}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>Mijoz:</b> {profile}\n"
+            f"📞 <b>Tel:</b> {html.escape(state['phone'])}\n"
+            f"📍 <b>Qayerdan:</b> <code>{html.escape(state['from'])}</code>\n"
+            f"🏁 <b>Qayerga:</b> <code>{html.escape(state['to'])}</code>"
+            f"{comment_line}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🕒 <b>Vaqt:</b> <code>{uz_time}</code>"
+        )
+
+        mk_group = types.InlineKeyboardMarkup()
+        mk_group.add(
+            types.InlineKeyboardButton("✅ Qabul qilish", callback_data=f"order_accept_{cid}"),
+            types.InlineKeyboardButton("❌ Rad etish", callback_data=f"order_reject_{cid}")
+        )
+        
+        # Add direct message button if username exists, otherwise fallback to profile link
+        if user.username:
+            mk_group.add(types.InlineKeyboardButton("✉️ Mijozga yozish", url=f"https://t.me/{user.username}"))
+        else:
+            mk_group.add(types.InlineKeyboardButton("👤 Mijoz profili", url=f"tg://user?id={user.id}"))
+
+        try:
+            m = bot.send_message(target, text, parse_mode="HTML", reply_markup=mk_group)
+            bot.send_location(target, state['lat'], state['lon'], reply_to_message_id=m.message_id)
+            bot.send_message(cid,
+                "✅ <b>Buyurtmangiz yuborildi!</b>\n"
+                "Tez orada haydovchilar bog'lanishadi. 🚗",
+                parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"Failed to send order to group: {e}")
+            bot.send_message(cid, "❌ Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.")
+
+        del user_states[cid]
+        start(message)
 
     @bot.message_handler(func=lambda m: m.chat.id in user_states and isinstance(user_states[m.chat.id], str))
     def handle_admin_inputs(message):
         cid = message.chat.id
-        if not is_admin(message): return
-        
+        if not is_admin(message):
+            return
+
         state = user_states[cid]
-        
+
         if state == 'setting_ad_text':
             config['ad_text'] = message.text
             save_config(config)
@@ -234,7 +306,7 @@ def register_handlers():
                 config['ad_photo'] = message.photo[-1].file_id
                 save_config(config)
                 bot.send_message(cid, "✅ Reklama rasmi saqlandi.")
-            elif message.text and message.text.lower() in ['ochir', 'o\'chir', 'yoq', 'yo\'q']:
+            elif message.text and message.text.lower() in ['ochir', "o'chir", 'yoq', "yo'q"]:
                 config['ad_photo'] = None
                 save_config(config)
                 bot.send_message(cid, "✅ Reklama rasmi olib tashlandi.")
@@ -243,29 +315,36 @@ def register_handlers():
                 return
         elif state == 'setting_ad_time':
             try:
-                config['ad_interval_minutes'] = int(message.text)
+                minutes = int(message.text)
+                if minutes < 1:
+                    raise ValueError("Must be positive")
+                config['ad_interval_minutes'] = minutes
                 save_config(config)
                 ads.reschedule_ads()
-                bot.send_message(cid, f"✅ Interval {message.text} minutga sozlandi.")
-            except:
-                bot.send_message(cid, "Faqat raqam yuboring.")
+                bot.send_message(cid, f"✅ Interval {minutes} minutga sozlandi.")
+            except ValueError:
+                bot.send_message(cid, "Faqat musbat raqam yuboring.")
                 return
         elif state == 'setting_ad_target':
-            config['ad_target_group'] = message.text
+            config['ad_target_group'] = message.text.strip()
             save_config(config)
             bot.send_message(cid, "✅ Reklama guruhi saqlandi.")
         elif state == 'setting_source':
-            config['source_group'] = message.text
+            config['source_group'] = message.text.strip()
             save_config(config)
-            bot.send_message(cid, "✅ Manba guruh saqlandi.\n📥 Endi <b>Qabul qiluvchi guruh</b> ID sini yuboring:")
+            bot.send_message(cid,
+                "✅ Manba guruh saqlandi.\n"
+                "📥 Endi <b>Qabul qiluvchi guruh</b> ID sini yuboring:",
+                parse_mode="HTML")
             user_states[cid] = 'setting_destination'
             return
         elif state == 'setting_destination':
-            config['destination_group'] = message.text
+            config['destination_group'] = message.text.strip()
             save_config(config)
-            bot.send_message(cid, "✅ Qabul qiluvchi guruh saqlandi.\nBot to'liq sozlandi!")
-        
-        if cid in user_states: del user_states[cid]
+            bot.send_message(cid, "✅ Qabul qiluvchi guruh saqlandi.\nBot to'liq sozlandi! ✅")
+
+        if cid in user_states:
+            del user_states[cid]
 
     @bot.message_handler(content_types=['photo'], func=lambda m: user_states.get(m.chat.id) == 'setting_ad_photo')
     def handle_ad_photo(message):
@@ -275,16 +354,49 @@ def register_handlers():
     def order_callbacks(call):
         cid = call.message.chat.id
         data = call.data.split('_')
+        # data = ['order', 'accept'/'reject', customer_id]
         action = data[1]
-        customer_id = data[2]
-        
+        customer_id = int(data[2])
+
+        driver_name = html.escape(call.from_user.first_name or "Haydovchi")
+        driver_username = f" (@{call.from_user.username})" if call.from_user.username else ""
+
         if action == "accept":
-            bot.edit_message_text(f"✅ <b>QABUL QILINDI</b>\n\n{call.message.text}", cid, call.message.message_id, parse_mode="HTML")
-            bot.send_message(customer_id, "✅ <b>Buyurtmangiz qabul qilindi!</b>\nHaydovchi sizga aloqaga chiqadi.", parse_mode="HTML")
-            bot.answer_callback_query(call.id, "Buyurtma qabul qilindi")
+            try:
+                # FIX: avoid parse_mode conflict by using reply_markup removal
+                bot.edit_message_reply_markup(cid, call.message.message_id, reply_markup=None)
+                bot.send_message(
+                    cid,
+                    f"✅ <b>QABUL QILINDI</b> — {driver_name}{driver_username}",
+                    parse_mode="HTML",
+                    reply_to_message_id=call.message.message_id
+                )
+            except Exception as e:
+                logger.error(f"Error editing order message: {e}")
+            try:
+                bot.send_message(
+                    customer_id,
+                    f"✅ <b>Buyurtmangiz qabul qilindi!</b>\n"
+                    f"👤 Haydovchi: <b>{driver_name}{driver_username}</b>\n"
+                    "Haydovchi sizga aloqaga chiqadi. 🚗",
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify customer {customer_id}: {e}")
+            bot.answer_callback_query(call.id, "✅ Buyurtma qabul qilindi")
+
         elif action == "reject":
-            bot.edit_message_text(f"❌ <b>RAD ETILDI</b>\n\n{call.message.text}", cid, call.message.message_id, parse_mode="HTML")
-            bot.answer_callback_query(call.id, "Buyurtma rad etildi")
+            try:
+                bot.edit_message_reply_markup(cid, call.message.message_id, reply_markup=None)
+                bot.send_message(
+                    cid,
+                    f"❌ <b>RAD ETILDI</b> — {driver_name}{driver_username}",
+                    parse_mode="HTML",
+                    reply_to_message_id=call.message.message_id
+                )
+            except Exception as e:
+                logger.error(f"Error editing order message: {e}")
+            bot.answer_callback_query(call.id, "❌ Buyurtma rad etildi")
 
     @bot.message_handler(func=lambda m: True)
     @bot.channel_post_handler(func=lambda m: True)

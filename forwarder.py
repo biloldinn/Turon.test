@@ -30,7 +30,7 @@ def handle_forwarding(message):
                 
                 # Use mention_html if possible, or link to username/ID
                 if sender.username:
-                    profile_link = f"<a href='https://t.me/{sender.username}'>{full_name} (@{sender.username})</a>"
+                    profile_link = f"<a href='https://t.me/{sender.username}'>{full_name}</a>"
                 else:
                     profile_link = f"<a href='tg://user?id={sender.id}'>{full_name}</a>"
             
@@ -54,7 +54,7 @@ def handle_forwarding(message):
             
             # 4. Fallback
             else:
-                profile_link = "Noma'lum"
+                profile_link = "Noma'lum (Profillari yashirilgan)"
 
             # Format the profile link to be more prominent
             profile_html = f"👤 <b>Mijoz:</b> {profile_link}"
