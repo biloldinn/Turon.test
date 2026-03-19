@@ -5,9 +5,10 @@ from logger import logger
 
 load_dotenv()
 
-TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN')
-ADMIN_ID = int(os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or 0)
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or ''
+TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ'
+# If you want the old admin ID (7985206085 from .env)
+ADMIN_ID = int(os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or 7985206085)
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot-production.up.railway.app'
 
 if not TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set!")
