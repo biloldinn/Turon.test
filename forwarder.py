@@ -1,4 +1,5 @@
 import time
+from telebot import types
 from bot_instance import bot
 from config import config
 from logger import logger
@@ -42,23 +43,32 @@ def handle_forwarding(message):
                 profile_link = "<i>Maxfiy Mijoz</i>"
 
             profile_html = f"👤 <b>Mijoz:</b> {profile_link}"
-            logger.info(f"Generated profile HTML: {profile_html}")
             
+            # Create inline button for easy profile access
+            mk = types.InlineKeyboardMarkup()
+            if sender and not is_anonymous_bot:
+                if sender.username:
+                    mk.add(types.InlineKeyboardButton("✉️ Mijozga yozish", url=f"https://t.me/{sender.username}"))
+                else:
+                    mk.add(types.InlineKeyboardButton("👤 Profil (Faqat haydovchiga)", url=f"tg://user?id={sender.id}"))
+            elif sender_chat and sender_chat.username:
+                mk.add(types.InlineKeyboardButton("👤 Profil (Kanal)", url=f"https://t.me/{sender_chat.username}"))
+
             # Forward based on content type
             if message.text:
                 new_text = f"📢 <b>Yangi xabar</b>\n\n{html.escape(message.text)}\n\n{profile_html}"
-                bot.send_message(target, new_text, parse_mode="HTML")
+                bot.send_message(target, new_text, parse_mode="HTML", reply_markup=mk if mk.keyboard else None)
             elif message.photo:
                 caption = html.escape(message.caption or "")
                 new_caption = f"📸 <b>Rasm xabari</b>\n{caption}\n\n{profile_html}"
-                bot.send_photo(target, message.photo[-1].file_id, caption=new_caption, parse_mode="HTML")
+                bot.send_photo(target, message.photo[-1].file_id, caption=new_caption, parse_mode="HTML", reply_markup=mk if mk.keyboard else None)
             elif message.video:
                 caption = html.escape(message.caption or "")
                 new_caption = f"🎥 <b>Video xabari</b>\n{caption}\n\n{profile_html}"
-                bot.send_video(target, message.video.file_id, caption=new_caption, parse_mode="HTML")
+                bot.send_video(target, message.video.file_id, caption=new_caption, parse_mode="HTML", reply_markup=mk if mk.keyboard else None)
             else:
-                # For other types, copy and send the profile info as a reply or separate message
-                copied = bot.copy_message(target, message.chat.id, message.message_id)
+                # For other types, copy and send the profile info
+                copied = bot.copy_message(target, message.chat.id, message.message_id, reply_markup=mk if mk.keyboard else None)
                 bot.send_message(target, f"☝️ Yuqoridagi xabar egasi:\n{profile_html}", 
                                parse_mode="HTML", reply_to_message_id=copied.message_id)
 
