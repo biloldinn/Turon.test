@@ -1,5 +1,5 @@
 ﻿from bot_instance import bot
-from config import config, save_config, ADMIN_ID
+from config import config, save_config, ADMIN_IDS
 from logger import logger
 from telebot import types
 import html
@@ -11,11 +11,13 @@ user_states = {}
 
 def is_admin(message_or_call):
     """Works for both Message and CallbackQuery objects."""
-    if hasattr(message_or_call, 'from_user'):
+    if hasattr(message_or_call, 'from_user') and message_or_call.from_user:
         uid = message_or_call.from_user.id
-    else:
+    elif hasattr(message_or_call, 'id'):
         uid = message_or_call.id
-    return str(uid) == str(ADMIN_ID)
+    else:
+        return False
+    return uid in ADMIN_IDS
 
 def register_handlers():
 
@@ -103,7 +105,7 @@ def register_handlers():
     def admin_callbacks(call):
         cid = call.message.chat.id
         # FIX: is_admin must check call.from_user, not call.message (which is the bot's message)
-        if str(call.from_user.id) != str(ADMIN_ID):
+        if call.from_user.id not in ADMIN_IDS:
             bot.answer_callback_query(call.id, "Siz admin emassiz!")
             return
 
@@ -120,7 +122,7 @@ def register_handlers():
             bot.send_message(cid, "🎯 <b>Reklama guruhi ID sini yuboring:</b>", parse_mode="HTML")
             user_states[cid] = 'setting_ad_target'
         elif call.data == "admin_ad_now":
-            ads.send_ad()
+            ads.send_ad(force=True)
             bot.answer_callback_query(call.id, "✅ Reklama yuborildi!")
             return
         elif call.data == "admin_ad_toggle":

@@ -6,15 +6,20 @@ from logger import logger
 load_dotenv()
 
 TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ'
-# If you want the old admin ID (7985206085 from .env)
-ADMIN_ID = int(os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or 7985206085)
+# Admin IDs - supports multiple
+admin_id_env = os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or "7985206085"
+ADMIN_IDS = [int(i.strip()) for i in admin_id_env.split(',') if i.strip().isdigit()]
+# Add the second admin ID if not already present
+if 1506545257 not in ADMIN_IDS:
+    ADMIN_IDS.append(1506545257)
+
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot-production.up.railway.app'
 
 if not TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set!")
 
-if not ADMIN_ID:
-    raise ValueError("ADMIN_ID environment variable is not set!")
+if not ADMIN_IDS:
+    raise ValueError("ADMIN_IDS are not set!")
 
 CONFIG_FILE = 'bot_config.json'
 

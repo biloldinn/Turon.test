@@ -14,49 +14,33 @@ def handle_forwarding(message):
 
     if str(message.chat.id) == str(source) or (message.chat.username and message.chat.username == str(source).replace('@', '')):
         try:
-            # Handle user or channel/anonymous sender
+            # 1. Prepare sender info
             sender = message.from_user
-            # Telegram Anonymous Bot ID
-            is_anonymous_bot = sender and sender.id in [1087968824, 777000, 136817688]
+            sender_chat = message.sender_chat
             
-            logger.info(f"Processing message {message.message_id}. Sender: {sender.id if sender else 'None'}, Chat: {message.chat.id}")
-
-            # 1. Try to get real user or forward_from first
-            if message.forward_from:
-                sender = message.forward_from
-            
-            if sender and not is_anonymous_bot:
-                full_name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
-                
-                # Use mention_html if possible, or link to username/ID
-                if sender.username:
-                    profile_link = f"<a href='https://t.me/{sender.username}'>{full_name}</a>"
+            # If it's a channel post or anonymous, sender might be None
+            if sender:
+                is_anonymous_bot = sender.id in [1087968824, 777000, 136817688]
+                name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
+                if not is_anonymous_bot:
+                    if sender.username:
+                        profile_link = f"<a href='https://t.me/{sender.username}'>{name} (@{sender.username})</a>"
+                    else:
+                        profile_link = f"<a href='tg://user?id={sender.id}'>{name} (Profil)</a>"
                 else:
-                    profile_link = f"<a href='tg://user?id={sender.id}'>{full_name}</a>"
+                    profile_link = f"<b>{name}</b> (Anonim Admin)"
             
-            # 2. If anonymous admin or channel post
-            elif message.sender_chat:
-                chat = message.sender_chat
-                name = html.escape(chat.title or "Mijoz")
-                if chat.username:
-                    profile_link = f"<a href='https://t.me/{chat.username}'>{name}</a>"
+            elif sender_chat:
+                name = html.escape(sender_chat.title or "Mijoz")
+                username = sender_chat.username
+                if username:
+                    profile_link = f"<a href='https://t.me/{username}'>{name}</a>"
                 else:
                     profile_link = f"<b>{name}</b> (Kanal/Guruh)"
             
-            # 3. Fallback to forward_from_chat (if it's a channel forward)
-            elif message.forward_from_chat:
-                chat = message.forward_from_chat
-                name = html.escape(chat.title or "Mijoz")
-                if chat.username:
-                    profile_link = f"<a href='https://t.me/{chat.username}'>{name} (Kanal)</a>"
-                else:
-                    profile_link = f"<b>{name}</b> (Kanal)"
-            
-            # 4. Fallback
             else:
-                profile_link = "Noma'lum (Profillari yashirilgan)"
+                profile_link = "<i>Maxfiy Mijoz</i>"
 
-            # Format the profile link to be more prominent
             profile_html = f"👤 <b>Mijoz:</b> {profile_link}"
             logger.info(f"Generated profile HTML: {profile_html}")
             
