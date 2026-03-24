@@ -6,16 +6,16 @@ from logger import logger
 
 scheduler = BackgroundScheduler()
 
-def send_ad():
+def send_ad(force=False):
     cfg = config
-    target_id = cfg.get('ad_target_group')
-    
-    # If ad_target_group is not set, use destination_group as a single target
-    if not target_id:
-        target_id = cfg.get('destination_group')
+    # Use ad_target_group if specifically set, otherwise fallback to destination_group
+    target_id = cfg.get('ad_target_group') or cfg.get('destination_group')
 
-    if not cfg.get('is_ad_active') or not target_id:
-        logger.warning("Ad system active but no target group configured.")
+    if not target_id:
+        logger.warning("Ad system: No target group configured.")
+        return
+
+    if not force and not cfg.get('is_ad_active'):
         return
 
     try:

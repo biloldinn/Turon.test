@@ -11,10 +11,12 @@ user_states = {}
 
 def is_admin(message_or_call):
     """Works for both Message and CallbackQuery objects."""
-    if hasattr(message_or_call, 'from_user'):
+    if hasattr(message_or_call, 'from_user') and message_or_call.from_user:
         uid = message_or_call.from_user.id
-    else:
+    elif hasattr(message_or_call, 'id'):
         uid = message_or_call.id
+    else:
+        return False
     return int(uid) in ADMIN_IDS
 
 def register_handlers():
@@ -102,7 +104,6 @@ def register_handlers():
     @bot.callback_query_handler(func=lambda c: c.data.startswith('admin_'))
     def admin_callbacks(call):
         cid = call.message.chat.id
-        # FIX: is_admin must check call.from_user, not call.message (which is the bot's message)
         if int(call.from_user.id) not in ADMIN_IDS:
             bot.answer_callback_query(call.id, "Siz admin emassiz!")
             return
@@ -120,7 +121,7 @@ def register_handlers():
             bot.send_message(cid, "🎯 <b>Reklama guruhi ID sini yuboring:</b>", parse_mode="HTML")
             user_states[cid] = 'setting_ad_target'
         elif call.data == "admin_ad_now":
-            ads.send_ad()
+            ads.send_ad(force=True)
             bot.answer_callback_query(call.id, "✅ Reklama yuborildi!")
             return
         elif call.data == "admin_ad_toggle":

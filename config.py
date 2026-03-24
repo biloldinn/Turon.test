@@ -7,13 +7,17 @@ load_dotenv()
 
 TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ'
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot-production.up.railway.app'
-ADMIN_IDS = [7985206085, 534958748, 1506545257] # Original, User, and New Admin
-# Plus any from environment
-env_admins = os.environ.get('ADMIN_IDS') or os.environ.get('ADMIN_ID')
-if env_admins:
-    for a in str(env_admins).split(','):
-        try: ADMIN_IDS.append(int(a.strip()))
-        except: pass
+
+# Admin IDs - supports multiple
+admin_id_env = os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or os.environ.get('ADMIN_IDS') or "7985206085"
+ADMIN_IDS = [int(i.strip()) for i in admin_id_env.split(',') if i.strip().isdigit()]
+
+# Add default admin IDs if not present
+default_admins = [7985206085, 534958748, 1506545257]
+for admin_id in default_admins:
+    if admin_id not in ADMIN_IDS:
+        ADMIN_IDS.append(admin_id)
+
 ADMIN_IDS = list(set(ADMIN_IDS)) # Unique IDs only
 
 if not TOKEN:
