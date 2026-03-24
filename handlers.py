@@ -1,5 +1,5 @@
 ﻿from bot_instance import bot
-from config import config, save_config, ADMIN_ID
+from config import config, save_config, ADMIN_IDS
 from logger import logger
 from telebot import types
 import html
@@ -15,7 +15,7 @@ def is_admin(message_or_call):
         uid = message_or_call.from_user.id
     else:
         uid = message_or_call.id
-    return str(uid) == str(ADMIN_ID)
+    return int(uid) in ADMIN_IDS
 
 def register_handlers():
 
@@ -103,7 +103,7 @@ def register_handlers():
     def admin_callbacks(call):
         cid = call.message.chat.id
         # FIX: is_admin must check call.from_user, not call.message (which is the bot's message)
-        if str(call.from_user.id) != str(ADMIN_ID):
+        if int(call.from_user.id) not in ADMIN_IDS:
             bot.answer_callback_query(call.id, "Siz admin emassiz!")
             return
 

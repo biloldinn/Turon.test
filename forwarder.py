@@ -9,83 +9,67 @@ def handle_forwarding(message):
     source = cfg.get('source_group')
     target = cfg.get('destination_group')
 
+    # Basic guards
     if not cfg.get('is_forwarding_active') or not source or not target:
         return
 
-    if str(message.chat.id) == str(source) or (message.chat.username and message.chat.username == str(source).replace('@', '')):
+    # Check if message is from the source (either ID or username)
+    is_from_source = False
+    if str(message.chat.id) == str(source):
+        is_from_source = True
+    elif message.chat.username and message.chat.username == str(source).replace('@', ''):
+        is_from_source = True
+
+    if is_from_source:
         try:
-            # Handle user or channel/anonymous sender
-            sender = message.from_user
-            # Telegram Anonymous Bot ID
-            is_anonymous_bot = sender and sender.id in [1087968824, 777000, 136817688]
-            
-            logger.info(f"Processing message {message.message_id}. Sender: {sender.id if sender else 'None'}, Chat: {message.chat.id}")
-
-            # 1. Try to get real user or forward_from first
-            if message.forward_from:
-                sender = message.forward_from
-            
-            if sender and not is_anonymous_bot:
-                full_name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
-                
-                # Use mention_html if possible, or link to username/ID
-                if sender.username:
-                    profile_link = f"<a href='https://t.me/{sender.username}'>{full_name}</a>"
+            # 1. Get sender information and create profile link
+            user = message.from_user
+            if user:
+                first_name = html.escape(user.first_name or "Mijoz")
+                # Create a link that opens the user's private message
+                if user.username:
+                    profile_link = f"<a href='https://t.me/{user.username}'>{first_name}</a>"
                 else:
-                    profile_link = f"<a href='tg://user?id={sender.id}'>{full_name}</a>"
-            
-            # 2. If anonymous admin or channel post
-            elif message.sender_chat:
-                chat = message.sender_chat
-                name = html.escape(chat.title or "Mijoz")
-                if chat.username:
-                    profile_link = f"<a href='https://t.me/{chat.username}'>{name}</a>"
-                else:
-                    profile_link = f"<b>{name}</b> (Kanal/Guruh)"
-            
-            # 3. Fallback to forward_from_chat (if it's a channel forward)
-            elif message.forward_from_chat:
-                chat = message.forward_from_chat
-                name = html.escape(chat.title or "Mijoz")
-                if chat.username:
-                    profile_link = f"<a href='https://t.me/{chat.username}'>{name} (Kanal)</a>"
-                else:
-                    profile_link = f"<b>{name}</b> (Kanal)"
-            
-            # 4. Fallback
+                    profile_link = f"<a href='tg://user?id={user.id}'>{first_name}</a>"
             else:
-                profile_link = "Noma'lum (Profillari yashirilgan)"
+                profile_link = "Yashirin profil"
 
-            # Format the profile link to be more prominent
             profile_html = f"👤 <b>Mijoz:</b> {profile_link}"
-            logger.info(f"Generated profile HTML: {profile_html}")
-            
-            # Forward based on content type
+
+            # 2. Forward the content
             if message.text:
-                new_text = f"📢 <b>Yangi xabar</b>\n\n{html.escape(message.text)}\n\n{profile_html}"
-                bot.send_message(target, new_text, parse_mode="HTML")
+                clean_text = html.escape(message.text)
+                forward_msg = f"📢 <b>Yangi xabar</b>\n\n📝 {clean_text}\n\n{profile_html}"
+                bot.send_message(target, forward_msg, parse_mode="HTML")
+            
             elif message.photo:
-                caption = html.escape(message.caption or "")
-                new_caption = f"📸 <b>Rasm xabari</b>\n{caption}\n\n{profile_html}"
-                bot.send_photo(target, message.photo[-1].file_id, caption=new_caption, parse_mode="HTML")
+                cap = html.escape(message.caption or "")
+                forward_cap = f"📸 <b>Rasm xabari</b>\n{cap}\n\n{profile_html}"
+                bot.send_photo(target, message.photo[-1].file_id, caption=forward_cap, parse_mode="HTML")
+            
             elif message.video:
-                caption = html.escape(message.caption or "")
-                new_caption = f"🎥 <b>Video xabari</b>\n{caption}\n\n{profile_html}"
-                bot.send_video(target, message.video.file_id, caption=new_caption, parse_mode="HTML")
+                cap = html.escape(message.caption or "")
+                forward_cap = f"🎥 <b>Video xabari</b>\n{cap}\n\n{profile_html}"
+                bot.send_video(target, message.video.file_id, caption=forward_cap, parse_mode="HTML")
+            
             else:
-                # For other types, copy and send the profile info as a reply or separate message
+                # Other types: voice, document, etc.
                 copied = bot.copy_message(target, message.chat.id, message.message_id)
                 bot.send_message(target, f"☝️ Yuqoridagi xabar egasi:\n{profile_html}", 
                                parse_mode="HTML", reply_to_message_id=copied.message_id)
 
-            logger.info(f"Message {message.message_id} forwarded with profile link to {target}")
-            
-            # Delete from source
-            bot.delete_message(message.chat.id, message.message_id)
-            logger.info(f"Message {message.message_id} deleted from source {message.chat.id}")
-        except Exception as e:
-            logger.error(f"Forwarding error: {e}")
+            logger.info(f"Message {message.message_id} forwarded and formatted.")
 
-# Separate handler for channel posts if needed
+            # 3. DELETE the original message from source
+            try:
+                bot.delete_message(message.chat.id, message.message_id)
+                logger.info(f"Source message {message.message_id} deleted successfully.")
+            except Exception as d_err:
+                logger.warning(f"Could not delete message: {d_err}. Ensure bot is ADMIN in source group.")
+
+        except Exception as e:
+            logger.error(f"Forwarding logic error: {e}")
+
 def handle_channel_forwarding(message):
+    # If source is a channel, same logic applies
     handle_forwarding(message)

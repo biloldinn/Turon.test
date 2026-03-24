@@ -4,52 +4,61 @@ import handlers  # Register all bot handlers
 import ads
 from logger import logger
 import os
-import threading
-from flask import Flask
+from flask import Flask, request
+from config import TOKEN, WEBHOOK_URL
 
 app = Flask(__name__)
 
 # Start ad scheduler
 ads.start_ads()
 
-# Remove any existing webhook to ensure polling works
-try:
-    bot.remove_webhook()
-    logger.info("Successfully removed old webhook format.")
-except Exception as e:
-    logger.error(f"Could not remove webhook: {e}")
+# Webhook route
+@app.route('/' + TOKEN, methods=['POST'])
+def get_message():
+    """Receive updates from Telegram."""
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "OK", 200
+    else:
+        return "Forbidden", 403
 
-# Health check endpoint for Render/Railway monitoring
+# Health check endpoints
 @app.route('/')
 @app.route('/health')
 def health_check():
-    return "Bot is active (Polling Strategy)!", 200
-
-def run_flask():
-    """Run Flask in a background thread for health checks."""
-    # Use port 8080 or port from env (Render uses dynamic ports)
-    port = int(os.environ.get("PORT", 8080))
-    logger.info(f"Health check server starting on port {port}...")
-    try:
-        app.run(host="0.0.0.0", port=port, use_reloader=False)
-    except Exception as e:
-        logger.error(f"Flask server error: {e}")
+    return "Bot is active (Webhook Strategy)!", 200
 
 def main():
-    # Start Flask health check server in background
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
+    # Detect if we should use Webhook or Polling
+    # If we are on Railway or have a WEBHOOK_URL, use Webhook
+    is_railway = os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT')
     
-    # Log the number of handlers for debugging
-    handler_count = len(bot.message_handlers)
-    logger.info(f"Bot starting with {handler_count} handlers registered.")
-
-    # Run bot polling in the MAIN thread
-    logger.info("Bot is now entering infinity polling mode...")
-    try:
-        bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=30)
-    except Exception as e:
-        logger.error(f"Bot polling crashed: {e}")
+    if is_railway and WEBHOOK_URL:
+        logger.info("Railway environment detected. Setting up Webhook...")
+        try:
+            bot.remove_webhook()
+            # Construct full URL: https://domain.com/TOKEN
+            webhook_full_url = f"{WEBHOOK_URL.rstrip('/')}/{TOKEN}"
+            bot.set_webhook(url=webhook_full_url)
+            logger.info(f"Webhook set successfully to: {webhook_full_url}")
+            
+            # Start Flask server (Main thread)
+            port = int(os.environ.get("PORT", 8080))
+            logger.info(f"Starting Webhook server on port {port}...")
+            app.run(host="0.0.0.0", port=port)
+        except Exception as e:
+            logger.error(f"Webhook setup failed: {e}. Falling back to polling.")
+            bot.infinity_polling(skip_pending=True)
+    else:
+        # Local development - use Polling
+        logger.info("Local environment detected. Starting Polling...")
+        try:
+            bot.remove_webhook()
+            bot.infinity_polling(skip_pending=True)
+        except Exception as e:
+            logger.error(f"Polling crashed: {e}")
 
 if __name__ == "__main__":
     main()
