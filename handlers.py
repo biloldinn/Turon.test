@@ -151,6 +151,80 @@ def register_handlers():
 
         bot.send_message(cid, "📝 <b>Ismingizni yozing:</b>", reply_markup=cancel_markup, parse_mode="HTML")
 
+    @bot.message_handler(content_types=['contact'])
+    def handle_contact(message):
+        cid = message.chat.id
+        if cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'phone':
+            phone = message.contact.phone_number
+            if phone and not phone.startswith('+'):
+                phone = '+' + phone
+            user_states[cid]['phone'] = phone
+            user_states[cid]['step'] = 'from'
+            bot.send_message(cid, "📍 <b>Qayerdan?</b> (Manzilni yozing):", parse_mode="HTML")
+
+    @bot.message_handler(content_types=['location'])
+    def handle_location(message):
+        cid = message.chat.id
+        if not (cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'location'):
+            return
+
+        state = user_states[cid]
+        state['lat'] = message.location.latitude
+        state['lon'] = message.location.longitude
+
+        target = config.get('destination_group')
+        if not target:
+            logger.error("Destination group not set in config!")
+            bot.send_message(cid, "❌ Xatolik: Guruh sozlanmagan. Iltimos adminga xabar bering.")
+            del user_states[cid]
+            start(message)
+            return
+
+        title = "🚖 #YANGI_TAKSI" if state['type'] == 'Taksi' else "📦 #YANGI_POCHTA"
+        user = message.from_user
+        esc_name = html.escape(state['name'])
+        
+        if user.username:
+            profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
+        else:
+            profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
+
+        uz_time = (datetime.utcnow() + timedelta(hours=5)).strftime('%H:%M:%S')
+        comment_line = f"\n💬 <b>Izoh:</b> <i>{html.escape(state['comment'])}</i>" if state.get('comment') else ""
+
+        text = (
+            f"📥 <b>{title}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>Mijoz:</b> {profile}\n"
+            f"📞 <b>Tel:</b> {html.escape(state['phone'])}\n"
+            f"📍 <b>Qayerdan:</b> <code>{html.escape(state['from'])}</code>\n"
+            f"🏁 <b>Qayerga:</b> <code>{html.escape(state['to'])}</code>"
+            f"{comment_line}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🕒 <b>Vaqt:</b> <code>{uz_time}</code>"
+        )
+
+        mk_group = types.InlineKeyboardMarkup()
+        mk_group.add(
+            types.InlineKeyboardButton("✅ Qabul qilish", callback_data=f"order_accept_{cid}"),
+            types.InlineKeyboardButton("❌ Rad etish", callback_data=f"order_reject_{cid}")
+        )
+        if user.username:
+            mk_group.add(types.InlineKeyboardButton("✉️ Mijozga yozish", url=f"https://t.me/{user.username}"))
+        else:
+            mk_group.add(types.InlineKeyboardButton("👤 Mijoz profili", url=f"tg://user?id={user.id}"))
+
+        try:
+            m = bot.send_message(target, text, parse_mode="HTML", reply_markup=mk_group)
+            bot.send_location(target, state['lat'], state['lon'], reply_to_message_id=m.message_id)
+            bot.send_message(cid, "✅ <b>Buyurtmangiz yuborildi!</b>\nTez orada haydovchilar bog'lanishadi. 🚗", parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"Failed to send order to group {target}: {e}")
+            bot.send_message(cid, "❌ Buyurtmani guruhga yuborishda xatolik. Iltimos qaytadan urinib ko'ring.")
+
+        del user_states[cid]
+        start(message)
+
     @bot.message_handler(func=lambda m: m.chat.id in user_states and isinstance(user_states[m.chat.id], dict))
     def order_steps(message):
         cid = message.chat.id
@@ -206,89 +280,6 @@ def register_handlers():
                 "🗺 <b>Lokatsiyangizni yuboring:</b>\n"
                 "Hech bo'lmasa yaqin atrofdagi nuqtani tanlang.",
                 reply_markup=mk, parse_mode="HTML")
-
-    @bot.message_handler(content_types=['contact'])
-    def handle_contact(message):
-        cid = message.chat.id
-        if cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'phone':
-            phone = message.contact.phone_number
-            # Normalize: ensure it starts with +
-            if phone and not phone.startswith('+'):
-                phone = '+' + phone
-            user_states[cid]['phone'] = phone
-            user_states[cid]['step'] = 'from'
-            bot.send_message(cid, "📍 <b>Qayerdan?</b>", parse_mode="HTML")
-
-    @bot.message_handler(content_types=['location'])
-    def handle_location(message):
-        cid = message.chat.id
-        if not (cid in user_states and isinstance(user_states[cid], dict) and user_states[cid].get('step') == 'location'):
-            return
-
-        state = user_states[cid]
-        state['lat'] = message.location.latitude
-        state['lon'] = message.location.longitude
-
-        target = config.get('destination_group')
-        if not target:
-            bot.send_message(cid, "❌ Xatolik: Guruh sozlanmagan. Iltimos adminga xabar bering.")
-            del user_states[cid]
-            start(message)
-            return
-
-        title = "🚖 #YANGI_TAKSI" if state['type'] == 'Taksi' else "📦 #YANGI_POCHTA"
-        user = message.from_user
-        esc_name = html.escape(state['name'])
-
-        if user.username:
-            profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
-        else:
-            profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
-
-        uz_time = (datetime.utcnow() + timedelta(hours=5)).strftime('%H:%M:%S')
-
-        # Build comment line
-        comment_line = ""
-        if state.get('comment'):
-            comment_line = f"\n💬 <b>Izoh:</b> <i>{html.escape(state['comment'])}</i>"
-
-        text = (
-            f"📥 <b>{title}</b>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"👤 <b>Mijoz:</b> {profile}\n"
-            f"📞 <b>Tel:</b> {html.escape(state['phone'])}\n"
-            f"📍 <b>Qayerdan:</b> <code>{html.escape(state['from'])}</code>\n"
-            f"🏁 <b>Qayerga:</b> <code>{html.escape(state['to'])}</code>"
-            f"{comment_line}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"🕒 <b>Vaqt:</b> <code>{uz_time}</code>"
-        )
-
-        mk_group = types.InlineKeyboardMarkup()
-        mk_group.add(
-            types.InlineKeyboardButton("✅ Qabul qilish", callback_data=f"order_accept_{cid}"),
-            types.InlineKeyboardButton("❌ Rad etish", callback_data=f"order_reject_{cid}")
-        )
-        
-        # Add direct message button if username exists, otherwise fallback to profile link
-        if user.username:
-            mk_group.add(types.InlineKeyboardButton("✉️ Mijozga yozish", url=f"https://t.me/{user.username}"))
-        else:
-            mk_group.add(types.InlineKeyboardButton("👤 Mijoz profili", url=f"tg://user?id={user.id}"))
-
-        try:
-            m = bot.send_message(target, text, parse_mode="HTML", reply_markup=mk_group)
-            bot.send_location(target, state['lat'], state['lon'], reply_to_message_id=m.message_id)
-            bot.send_message(cid,
-                "✅ <b>Buyurtmangiz yuborildi!</b>\n"
-                "Tez orada haydovchilar bog'lanishadi. 🚗",
-                parse_mode="HTML")
-        except Exception as e:
-            logger.error(f"Failed to send order to group: {e}")
-            bot.send_message(cid, "❌ Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.")
-
-        del user_states[cid]
-        start(message)
 
     @bot.message_handler(func=lambda m: m.chat.id in user_states and isinstance(user_states[m.chat.id], str))
     def handle_admin_inputs(message):
