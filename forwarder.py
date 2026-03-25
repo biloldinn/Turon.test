@@ -33,9 +33,9 @@ def handle_forwarding(message):
                 name = html.escape(sender.first_name + (f" {sender.last_name}" if sender.last_name else ""))
                 if not is_anonymous_bot:
                     if sender.username:
-                        profile_link = f"<a href='https://t.me/{sender.username}'>{name} (@{sender.username})</a>"
+                        profile_link = f"<a href='https://t.me/{sender.username}'>{name}</a>"
                     else:
-                        profile_link = f"<a href='tg://user?id={sender.id}'>{name} (Profil)</a>"
+                        profile_link = f"<a href='tg://user?id={sender.id}'>{name}</a>"
                 else:
                     profile_link = f"<b>{name}</b> (Anonim Admin)"
             
@@ -83,12 +83,12 @@ def handle_forwarding(message):
 
             logger.info(f"Message {message.message_id} forwarded and formatted.")
 
-            # 3. DELETE the original message from source
-            try:
-                bot.delete_message(message.chat.id, message.message_id)
-                logger.info(f"Source message {message.message_id} deleted successfully.")
-            except Exception as d_err:
-                logger.warning(f"Could not delete message: {d_err}. Ensure bot is ADMIN in source group.")
+            # 3. DELETE the original message from source (DISABLED based on user feedback)
+            # try:
+            #     bot.delete_message(message.chat.id, message.message_id)
+            #     logger.info(f"Source message {message.message_id} deleted successfully.")
+            # except Exception as d_err:
+            #     logger.warning(f"Could not delete message: {d_err}. Ensure bot is ADMIN in source group.")
 
         except Exception as e:
             logger.error(f"❌ Forwarding logic critical error: {e}")

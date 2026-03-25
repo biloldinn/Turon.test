@@ -1,4 +1,4 @@
-﻿from bot_instance import bot
+from bot_instance import bot
 from config import config, save_config, ADMIN_IDS
 from logger import logger
 from telebot import types
@@ -185,7 +185,7 @@ def register_handlers():
         esc_name = html.escape(state['name'])
         
         if user.username:
-            profile = f"<a href='https://t.me/{user.username}'>{esc_name} (@{user.username})</a>"
+            profile = f"<a href='https://t.me/{user.username}'>{esc_name}</a>"
         else:
             profile = f"<a href='tg://user?id={user.id}'>{esc_name}</a>"
 
@@ -219,8 +219,8 @@ def register_handlers():
             bot.send_location(target, state['lat'], state['lon'], reply_to_message_id=m.message_id)
             bot.send_message(cid, "✅ <b>Buyurtmangiz yuborildi!</b>\nTez orada haydovchilar bog'lanishadi. 🚗", parse_mode="HTML")
         except Exception as e:
-            logger.error(f"Failed to send order to group {target}: {e}")
-            bot.send_message(cid, "❌ Buyurtmani guruhga yuborishda xatolik. Iltimos qaytadan urinib ko'ring.")
+            logger.error(f"Failed to send order: {e}")
+            bot.send_message(cid, "❌ Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.")
 
         del user_states[cid]
         start(message)
@@ -245,10 +245,9 @@ def register_handlers():
             bot.send_message(cid, "📞 <b>Telefon raqamingizni yuboring:</b>", reply_markup=mk, parse_mode="HTML")
 
         elif step == 'phone':
-            # FIX: validate manually entered phone number
             phone = message.text.strip()
             if not phone.replace('+', '').replace(' ', '').isdigit() or len(phone) < 7:
-                bot.send_message(cid, "⚠️ Iltimos, to'g'ri telefon raqam kiriting yoki tugmani bosing.")
+                bot.send_message(cid, "⚠️ Iltimos, to'g'ri telefon raqam kiriting.")
                 return
             state['phone'] = phone
             state['step'] = 'from'
@@ -261,25 +260,15 @@ def register_handlers():
 
         elif step == 'to':
             state['to'] = message.text
-            state['step'] = 'comment'
-            mk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            mk.add(types.KeyboardButton("⏭ O'tkazib yuborish"))
-            mk.add(types.KeyboardButton("❌ Bekor qilish"))
-            bot.send_message(cid,
-                "💬 <b>Qo'shimcha izoh yoki narx so'rash? (ixtiyoriy)</b>\n"
-                "Masalan: 2 kishi, yo'lakay to'xtash, narx so'rash va h.k.",
-                reply_markup=mk, parse_mode="HTML")
-
-        elif step == 'comment':
-            state['comment'] = '' if message.text == "⏭ O'tkazib yuborish" else message.text
             state['step'] = 'location'
             mk = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             mk.add(types.KeyboardButton("📍 Lokatsiyani yuborish", request_location=True))
             mk.add(types.KeyboardButton("❌ Bekor qilish"))
-            bot.send_message(cid,
-                "🗺 <b>Lokatsiyangizni yuboring:</b>\n"
-                "Hech bo'lmasa yaqin atrofdagi nuqtani tanlang.",
-                reply_markup=mk, parse_mode="HTML")
+            bot.send_message(cid, "🗺 <b>Lokatsiyangizni yuboring:</b>", reply_markup=mk, parse_mode="HTML")
+
+        elif step == 'location':
+            # This is handled by handle_location, but if they type text:
+            bot.send_message(cid, "📍 Iltimos, pastdagi tugma orqali lokatsiyangizni yuboring.")
 
     @bot.message_handler(func=lambda m: m.chat.id in user_states and isinstance(user_states[m.chat.id], str))
     def handle_admin_inputs(message):

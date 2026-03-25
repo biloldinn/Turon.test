@@ -8,8 +8,8 @@ scheduler = BackgroundScheduler()
 
 def send_ad(force=False):
     cfg = config
-    # Use ad_target_group if specifically set, otherwise fallback to destination_group
-    target_id = cfg.get('ad_target_group') or cfg.get('destination_group')
+    # Ads must ONLY fall into the destination_group (info receiver)
+    target_id = cfg.get('destination_group')
 
     if not target_id:
         logger.warning("Ad system: No target group configured.")
