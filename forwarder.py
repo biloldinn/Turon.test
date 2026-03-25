@@ -91,7 +91,8 @@ def handle_forwarding(message):
                 logger.warning(f"Could not delete message: {d_err}. Ensure bot is ADMIN in source group.")
 
         except Exception as e:
-            logger.error(f"Forwarding logic error: {e}")
+            logger.error(f"❌ Forwarding logic critical error: {e}")
+            # Do not re-raise to prevent Flask worker from dying
 
 def handle_channel_forwarding(message):
     # If source is a channel, same logic applies
