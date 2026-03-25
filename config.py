@@ -6,7 +6,7 @@ from logger import logger
 load_dotenv()
 
 TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8693195379:AAGa9WP88CVvQm_nZk9mp0WIJwSSl-en6Ss'
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot.onrender.com'
+WEBHOOK_URL = os.environ.get('RENDER_EXTERNAL_URL') or os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot.onrender.com'
 
 if not TOKEN:
     # Use a safe logger message but don't hardcode a secret token here
