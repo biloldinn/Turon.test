@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 *.pyo
-.env
+# .env (exposed for easy deployment as requested)
 node_modules/
 *.log
 .DS_Store
