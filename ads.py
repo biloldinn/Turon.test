@@ -29,12 +29,24 @@ def send_ad(force=False):
         logger.error(f"Failed to send ad: {e}")
 
 def reschedule_ads():
-    scheduler.remove_all_jobs()
-    if config.get('is_ad_active') and config.get('ad_interval_minutes', 0) > 0:
-        scheduler.add_job(send_ad, 'interval', minutes=config['ad_interval_minutes'], id='ad_job')
-        logger.info(f"Ad job scheduled every {config['ad_interval_minutes']} minutes")
+    try:
+        scheduler.remove_all_jobs()
+        active = config.get('is_ad_active')
+        interval = config.get('ad_interval_minutes', 0)
+        
+        if active and interval > 0:
+            scheduler.add_job(send_ad, 'interval', minutes=interval, id='ad_job')
+            logger.info(f"✅ Ad job rescheduled: every {interval} minutes.")
+        else:
+            logger.info("Ad job is currently DISABLED or interval is 0.")
+    except Exception as e:
+        logger.error(f"Error in reschedule_ads: {e}")
 
 def start_ads():
-    if not scheduler.running:
-        scheduler.start()
-    reschedule_ads()
+    try:
+        if not scheduler.running:
+            scheduler.start()
+            logger.info("Background ADS Scheduler started.")
+        reschedule_ads()
+    except Exception as e:
+        logger.error(f"Failed to start ADS Scheduler: {e}")

@@ -11,7 +11,7 @@ if not TOKEN:
 bot = telebot.TeleBot(TOKEN)
 
 def set_webhook(url):
-    webhook_url = f"{url.rstrip('/')}/webhook"
+    webhook_url = f"{url.rstrip('/')}/{TOKEN}"
     print(f"Setting webhook to: {webhook_url}")
     result = bot.set_webhook(url=webhook_url)
     if result:

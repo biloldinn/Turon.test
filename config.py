@@ -5,8 +5,12 @@ from logger import logger
 
 load_dotenv()
 
-TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN') or '8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ'
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL') or 'https://telegram-versel-bot-production.up.railway.app'
+TOKEN = os.environ.get('BOT_TOKEN') or os.environ.get('TELEGRAM_BOT_TOKEN')
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
+
+if not TOKEN:
+    # Use a safe logger message but don't hardcode a secret token here
+    logger.error("BOT_TOKEN is missing from environment!")
 
 # Admin IDs - supports multiple
 admin_id_env = os.environ.get('ADMIN_ID') or os.environ.get('TELEGRAM_ADMIN_ID') or os.environ.get('ADMIN_IDS') or "7985206085"
@@ -29,14 +33,14 @@ if not ADMIN_IDS:
 CONFIG_FILE = 'bot_config.json'
 
 DEFAULT_CONFIG = {
-    "ad_text": "Sizning reklamangiz shu yerda bo'lishi mumkin!",
-    "ad_photo": None,
-    "ad_interval_minutes": 5,
-    "is_ad_active": False,
-    "is_forwarding_active": True,
-    "source_group": None,
-    "destination_group": None,
-    "ad_target_group": None
+    "ad_text": os.environ.get('DEFAULT_AD_TEXT', "Sizning reklamangiz shu yerda bo'lishi mumkin!"),
+    "ad_photo": os.environ.get('DEFAULT_AD_PHOTO', None),
+    "ad_interval_minutes": int(os.environ.get('DEFAULT_AD_INTERVAL', 5)),
+    "is_ad_active": os.environ.get('DEFAULT_AD_ACTIVE', 'false').lower() == 'true',
+    "is_forwarding_active": os.environ.get('DEFAULT_FWD_ACTIVE', 'true').lower() == 'true',
+    "source_group": os.environ.get('SOURCE_GROUP'),
+    "destination_group": os.environ.get('DESTINATION_GROUP'),
+    "ad_target_group": os.environ.get('AD_TARGET_GROUP')
 }
 
 def load_config():
