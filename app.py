@@ -3,6 +3,7 @@ from bot_instance import bot
 import handlers  # Register all bot handlers
 import ads
 import pinger
+import logging
 from logger import logger
 import os
 from flask import Flask, request
