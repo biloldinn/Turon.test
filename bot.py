@@ -9,7 +9,7 @@ if sys.platform == "win32":
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 # --- Konfiguratsiyalar ---
-TELEGRAM_BOT_TOKEN = "8247612744:AAHTKhj466aaqBbKHXefg6CD5v-abUMerv4"
+TELEGRAM_BOT_TOKEN = "8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ"
 TELEGRAM_CHAT_ID = "@turonntm95"
 BASE_URL = "http://localhost:5000/api"
 CHECK_INTERVAL = 180  # Har bir sikl orasida 3 minut kutish
