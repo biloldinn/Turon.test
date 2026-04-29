@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('.'));
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/turon_education_local';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin:admin123@cluster0.dcw67cz.mongodb.net/?appName=Cluster0';
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
