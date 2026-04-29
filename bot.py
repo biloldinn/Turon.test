@@ -11,7 +11,7 @@ if sys.platform == "win32":
 # --- Konfiguratsiyalar ---
 TELEGRAM_BOT_TOKEN = "8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ"
 TELEGRAM_CHAT_ID = "@turonntm95"
-BASE_URL = "https://turonzakas-production.up.railway.app/api"
+BASE_URL = "https://turon-oquvmarkazi-test.onrender.com/api"
 CHECK_INTERVAL = 180  # Har bir sikl orasida 3 minut kutish
 DELAY_BETWEEN_USERS = 20  # Har bir odam orasida 20 sekund kutish
 
